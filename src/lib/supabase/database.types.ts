@@ -109,6 +109,75 @@ export type Database = {
         }
         Relationships: []
       }
+      consolidation_runs: {
+        Row: {
+          created_at: string
+          error_class: string | null
+          finished_at: string | null
+          id: string
+          journal_entries_created: number
+          memories_created: number
+          memories_examined: number
+          memories_superseded: number
+          memories_updated: number
+          messages_examined: number
+          model: string | null
+          personality_changes: number
+          provider: string | null
+          relationship_changes: number
+          source_end: string | null
+          source_start: string | null
+          started_at: string
+          status: string
+          training_candidates_created: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_class?: string | null
+          finished_at?: string | null
+          id?: string
+          journal_entries_created?: number
+          memories_created?: number
+          memories_examined?: number
+          memories_superseded?: number
+          memories_updated?: number
+          messages_examined?: number
+          model?: string | null
+          personality_changes?: number
+          provider?: string | null
+          relationship_changes?: number
+          source_end?: string | null
+          source_start?: string | null
+          started_at?: string
+          status: string
+          training_candidates_created?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_class?: string | null
+          finished_at?: string | null
+          id?: string
+          journal_entries_created?: number
+          memories_created?: number
+          memories_examined?: number
+          memories_superseded?: number
+          memories_updated?: number
+          messages_examined?: number
+          model?: string | null
+          personality_changes?: number
+          provider?: string | null
+          relationship_changes?: number
+          source_end?: string | null
+          source_start?: string | null
+          started_at?: string
+          status?: string
+          training_candidates_created?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           archived_at: string | null
@@ -520,28 +589,34 @@ export type Database = {
       personality_history: {
         Row: {
           created_at: string
+          delta: number
           id: string
           new_value: number
           previous_value: number | null
           reason: string
+          source_interaction_ids: Json
           trait: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          delta?: number
           id?: string
           new_value: number
           previous_value?: number | null
           reason: string
+          source_interaction_ids?: Json
           trait: string
           user_id: string
         }
         Update: {
           created_at?: string
+          delta?: number
           id?: string
           new_value?: number
           previous_value?: number | null
           reason?: string
+          source_interaction_ids?: Json
           trait?: string
           user_id?: string
         }
@@ -549,18 +624,27 @@ export type Database = {
       }
       personality_traits: {
         Row: {
+          evidence_count: number
+          maximum_value: number
+          minimum_value: number
           trait: string
           updated_at: string
           user_id: string
           value: number
         }
         Insert: {
+          evidence_count?: number
+          maximum_value?: number
+          minimum_value?: number
           trait: string
           updated_at?: string
           user_id: string
           value: number
         }
         Update: {
+          evidence_count?: number
+          maximum_value?: number
+          minimum_value?: number
           trait?: string
           updated_at?: string
           user_id?: string
@@ -663,28 +747,37 @@ export type Database = {
       }
       relationships: {
         Row: {
+          communication_preferences: Json
           created_at: string
           familiarity: number
           interaction_count: number
+          important_shared_events: Json
           last_interaction_at: string | null
+          reliability: number
           trust: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          communication_preferences?: Json
           created_at?: string
           familiarity?: number
           interaction_count?: number
+          important_shared_events?: Json
           last_interaction_at?: string | null
+          reliability?: number
           trust?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          communication_preferences?: Json
           created_at?: string
           familiarity?: number
           interaction_count?: number
+          important_shared_events?: Json
           last_interaction_at?: string | null
+          reliability?: number
           trust?: number
           updated_at?: string
           user_id?: string

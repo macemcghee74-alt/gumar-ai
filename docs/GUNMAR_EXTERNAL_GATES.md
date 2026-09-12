@@ -29,6 +29,8 @@ Semantic embeddings are wired to an explicit OpenRouter embeddings model configu
 
 The bounded coding-agent core is implemented locally with workspace path containment, secret-file blocking, explicit approval for destructive/network risks, phase progression, cancellation, and step/provider-call/runtime budgets. Repository-backed tool executors and live provider execution remain a subsequent integration phase.
 
+Consolidation scheduling is not configured because deployment cron capability has not been verified in this local repository. The authenticated manual consolidation endpoint and run audit records are implemented; scheduled execution is externally blocked until the Vercel project schedule is confirmed.
+
 ## Live provider verification
 
 The local environment does not contain `CEREBRAS_API_KEY`, `GROQ_API_KEY`, or `OPENROUTER_API_KEY`, and no production URL/observability credentials are available to this agent. Live provider calls, fallback smoke tests, streaming verification, and production persistence verification remain externally blocked. No provider response was faked.

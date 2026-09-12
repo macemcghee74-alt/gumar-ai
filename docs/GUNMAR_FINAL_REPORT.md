@@ -36,6 +36,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Journal API and idempotent consolidation boundary | VERIFIED (implemented and typechecked) |
 | Memory Center and journal timeline UI | VERIFIED (authenticated controls and destructive confirmations) |
 | Bounded automatic journal summaries for substantive turns | VERIFIED (high-level summaries only; trivial turns excluded) |
+| Auditable personality evidence accumulation and relationship continuity metadata | VERIFIED (bounded updates, evidence threshold, history/audit fields) |
+| Idempotent consolidation run tracking | VERIFIED (authenticated run records, bounded window, failure status) |
 | Private uploads/audio storage with ownership policies and MIME/size validation | VERIFIED (live buckets and policies) |
 | SSRF-safe web research fetch boundary with untrusted-content labeling | VERIFIED (implemented and typechecked) |
 | Typed tool registry with risk and approval metadata | VERIFIED (implemented and typechecked) |
