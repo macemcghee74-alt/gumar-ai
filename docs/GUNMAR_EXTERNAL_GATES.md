@@ -24,6 +24,7 @@ Cloud AI, embeddings, speech, image, web search, Vercel, and training credential
 Current implementation work completed behind those gates:
 
 - provider-agnostic cloud streaming boundary with timeout, retry, cancellation, usage headers, and typed errors;
+- production provider mode now fails closed when `AI_PROVIDER_ENDPOINT`, `AI_PROVIDER_API_KEY`, or `AI_MODEL` is missing; mock mode requires explicit `AI_PROVIDER=mock`;
 - deterministic memory candidate extraction, scoring, deduplication, correction/supersession API;
 - live pgvector hybrid search RPC with per-user filtering;
 - request body limits, basic rate limiting, and safe relative auth redirects.

@@ -88,8 +88,11 @@ class ConfiguredProvider implements AIProvider {
         });
 
         if (response.ok && response.body) {
+          const contentType = response.headers.get("content-type") ?? "";
           return {
-            stream: response.body,
+            stream: contentType.includes("text/event-stream")
+              ? parseSseTextStream(response.body)
+              : response.body,
             provider,
             model,
             usage: readUsageHeaders(response.headers)
@@ -136,9 +139,65 @@ class MockProvider implements AIProvider {
 }
 
 export function getAIProvider(): AIProvider {
-  return process.env.AI_PROVIDER === "mock" || !process.env.AI_PROVIDER
+  return process.env.AI_PROVIDER === "mock"
     ? new MockProvider()
     : new ConfiguredProvider();
+}
+
+function parseSseTextStream(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        if (buffer.trim()) emitSseData(buffer, controller);
+        controller.close();
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() ?? "";
+      for (const event of events) emitSseData(event, controller);
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+    }
+  });
+}
+
+function emitSseData(event: string, controller: ReadableStreamDefaultController<Uint8Array>) {
+  const data = event
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .join("");
+  if (!data || data === "[DONE]") return;
+
+  try {
+    const payload: unknown = JSON.parse(data);
+    const text = extractText(payload);
+    if (text) controller.enqueue(encoder.encode(text));
+  } catch {
+    controller.enqueue(encoder.encode(data));
+  }
+}
+
+function extractText(payload: unknown) {
+  if (!payload || typeof payload !== "object") return "";
+  const record = payload as Record<string, unknown>;
+  const choices = Array.isArray(record.choices) ? record.choices : [];
+  const choice = choices[0];
+  if (!choice || typeof choice !== "object") return "";
+  const choiceRecord = choice as Record<string, unknown>;
+  const delta = choiceRecord.delta;
+  if (delta && typeof delta === "object" && typeof (delta as Record<string, unknown>).content === "string") {
+    return (delta as Record<string, string>).content;
+  }
+  return typeof choiceRecord.text === "string" ? choiceRecord.text : "";
 }
 
 function backoffMs(attempt: number) {
