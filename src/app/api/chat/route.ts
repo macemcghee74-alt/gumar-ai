@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
+import { AIMessage, AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { clientKey, consumeRateLimit, readJson } from "@/lib/security/request";
 
@@ -51,7 +51,24 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await getAIProvider().streamReply(parsed.data, { signal: request.signal });
+    let messages: AIMessage[] = [{ role: "user", content: parsed.data.message }];
+    if (supabase && conversationId) {
+      const { data: history, error: historyError } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userId)
+        .in("role", ["user", "assistant"])
+        .order("created_at", { ascending: true })
+        .limit(50);
+      if (historyError) throw new Error("Unable to load conversation context.");
+      messages = (history ?? []).map((message) => ({
+        role: message.role as "user" | "assistant",
+        content: message.content
+      }));
+    }
+
+    const result = await getAIProvider().streamReply({ ...parsed.data, messages }, { signal: request.signal });
     const stream = result.stream;
     const reader = stream.getReader();
     const encoder = new TextEncoder();

@@ -5,7 +5,14 @@ export const chatInputSchema = z.object({
   conversationId: z.string().uuid().optional()
 });
 
-export type ChatInput = z.infer<typeof chatInputSchema>;
+export type AIMessage = {
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+};
+
+export type ChatInput = z.infer<typeof chatInputSchema> & {
+  messages?: AIMessage[];
+};
 
 export type AIUsage = {
   inputTokens?: number;
@@ -82,7 +89,7 @@ class ConfiguredProvider implements AIProvider {
           body: JSON.stringify({
             model,
             stream: true,
-            messages: [{ role: "user", content: input.message }]
+            messages: input.messages ?? [{ role: "user", content: input.message }]
           }),
           signal
         });
