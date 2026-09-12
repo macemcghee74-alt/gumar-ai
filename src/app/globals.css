@@ -28,6 +28,9 @@ header { display:flex; justify-content:space-between; align-items:flex-start; } 
 .memory-card p { margin:4px 0 9px; line-height:1.5; }
 .memory-card small, .muted { color:var(--muted); }
 .memory-card > div:last-child { display:flex; gap:6px; align-items:flex-start; }
+.journal-form { display:flex; gap:8px; margin-bottom:18px; }
+.journal-form textarea { border:1px solid var(--line); background:var(--panel); color:var(--text); padding:12px; }
+.journal-form button { border:0; background:var(--accent); color:#10120d; padding:10px 14px; align-self:flex-end; cursor:pointer; }
 @media (max-width:700px) { .shell { display:block; } .sidebar { border-right:0; border-bottom:1px solid var(--line); padding:20px; gap:18px; } nav { flex-direction:row; } .status { display:none; } .workspace { padding:32px 20px 20px; } .transcript { padding-top:60px; } h2 { font-size:42px; } .badge { display:none; } }
 .auth-shell { min-height:100vh; display:grid; place-items:center; padding:24px; }
 .auth-card { width:min(440px, 100%); border:1px solid var(--line); background:var(--panel); padding:42px; }
