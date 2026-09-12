@@ -8,6 +8,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [conversationId, setConversationId] = useState<string>();
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,8 +18,10 @@ export default function Home() {
     setMessages((current) => [...current, { role: "user", content: message }, { role: "assistant", content: "" }]);
     setBusy(true);
     try {
-      const response = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message }) });
+      const response = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, conversationId }) });
       if (!response.ok || !response.body) throw new Error((await response.json()).error ?? "Request failed.");
+      const savedConversationId = response.headers.get("x-conversation-id");
+      if (savedConversationId) setConversationId(savedConversationId);
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let answer = "";

@@ -6,6 +6,8 @@
 - Server-side validated chat endpoint with a replaceable cloud provider boundary.
 - Safe mock mode for local development.
 - Supabase migration for identity, conversations, messages, memories, indexes, and RLS.
+- Supabase SSR client boundary with cookie-safe server access.
+- Authenticated conversation/message persistence when Supabase is configured; local mock mode remains available without credentials.
 - Environment variable contract and generated-artifact ignores.
 
 ## Next milestones

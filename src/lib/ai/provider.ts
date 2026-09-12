@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const chatInputSchema = z.object({
-  message: z.string().trim().min(1).max(12_000)
+  message: z.string().trim().min(1).max(12_000),
+  conversationId: z.string().uuid().optional()
 });
 
 export type ChatInput = z.infer<typeof chatInputSchema>;
