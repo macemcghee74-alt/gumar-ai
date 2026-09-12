@@ -178,6 +178,102 @@ export type Database = {
         }
         Relationships: []
       }
+      coding_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          max_provider_calls: number
+          max_steps: number
+          phase: string
+          provider_calls_used: number
+          repository_id: string
+          result_summary: string | null
+          started_at: string | null
+          status: string
+          steps_used: number
+          task: string
+          token_budget: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          max_provider_calls?: number
+          max_steps?: number
+          phase: string
+          provider_calls_used?: number
+          repository_id: string
+          result_summary?: string | null
+          started_at?: string | null
+          status: string
+          steps_used?: number
+          task: string
+          token_budget?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          max_provider_calls?: number
+          max_steps?: number
+          phase?: string
+          provider_calls_used?: number
+          repository_id?: string
+          result_summary?: string | null
+          started_at?: string | null
+          status?: string
+          steps_used?: number
+          task?: string
+          token_budget?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coding_steps: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          phase: string
+          result_status: string
+          run_id: string
+          safe_arguments_summary: string | null
+          step_number: number
+          tool: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          phase: string
+          result_status: string
+          run_id: string
+          safe_arguments_summary?: string | null
+          step_number: number
+          tool: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          phase?: string
+          result_status?: string
+          run_id?: string
+          safe_arguments_summary?: string | null
+          step_number?: number
+          tool?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           archived_at: string | null
