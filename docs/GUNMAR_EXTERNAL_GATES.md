@@ -25,7 +25,9 @@ Task-aware routing metadata and `GunmarBrainRouter` are implemented. Groq is pre
 
 Training candidate review, dataset hashing/versioning, and the provider-neutral `TrainingProvider` interface are implemented. Actual upload/jobs/models remain blocked until an explicitly selected training service and credentials are supplied; no provider is assumed or contacted.
 
-Semantic embeddings are wired to an explicit OpenRouter embeddings model configuration (`GUNMAR_EMBEDDING_MODEL`) and validate the live `vector(1536)` schema. No embedding model is selected by default because the free availability and pricing of a specific model must be confirmed before production configuration. Until that variable is set, memory safely uses its deterministic lexical retrieval path and does not persist placeholder vectors.
+Semantic embeddings are wired to an explicit OpenRouter embeddings model configuration (`GUNMAR_EMBEDDING_MODEL`) and validate the configured vector dimension. The requested one-shot smoke test is currently blocked: no local `OPENROUTER_API_KEY` is available, and the current official OpenRouter catalog did not list `nvidia/nemotron-3-embed-1b:free` or `liquid/lfm2.5-embedding-350m:free`. No embedding model is selected by default, so memory does not persist placeholder vectors. Live vector storage, retrieval, and backfill remain externally blocked until a verified model and credential are supplied.
+
+The bounded coding-agent core is implemented locally with workspace path containment, secret-file blocking, explicit approval for destructive/network risks, phase progression, cancellation, and step/provider-call/runtime budgets. Repository-backed tool executors and live provider execution remain a subsequent integration phase.
 
 ## Live provider verification
 

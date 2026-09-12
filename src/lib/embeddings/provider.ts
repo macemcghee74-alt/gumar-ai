@@ -5,6 +5,8 @@ export type EmbeddingResult = {
   model: string;
   provider: "openrouter";
   latencyMs: number;
+  dimensions: number;
+  version: number;
 };
 
 export interface EmbeddingProvider {
@@ -17,8 +19,9 @@ export interface EmbeddingProvider {
 
 export class OpenRouterEmbeddingProvider implements EmbeddingProvider {
   readonly model = process.env.GUNMAR_EMBEDDING_MODEL ?? "";
-  readonly dimensions = MEMORY_EMBEDDING_DIMENSIONS;
+  readonly dimensions = Number(process.env.GUNMAR_EMBEDDING_DIMENSIONS ?? MEMORY_EMBEDDING_DIMENSIONS);
   readonly configured = Boolean(process.env.OPENROUTER_API_KEY && this.model);
+  readonly version = Number(process.env.GUNMAR_EMBEDDING_VERSION ?? 1);
 
   async embed(text: string, options?: { signal?: AbortSignal }) {
     const [result] = await this.embedBatch([text], options);
@@ -53,7 +56,7 @@ export class OpenRouterEmbeddingProvider implements EmbeddingProvider {
       if (vectors.length !== texts.length || vectors.some((vector) => vector.length !== this.dimensions || vector.some((value) => typeof value !== "number" || !Number.isFinite(value)))) {
         throw new Error(`Embedding dimension mismatch: expected ${this.dimensions}.`);
       }
-      return vectors.map((vector) => ({ vector: vector as number[], model: this.model, provider: "openrouter" as const, latencyMs: Date.now() - startedAt }));
+      return vectors.map((vector) => ({ vector: vector as number[], model: this.model, provider: "openrouter" as const, latencyMs: Date.now() - startedAt, dimensions: this.dimensions, version: this.version }));
     } finally {
       clearTimeout(timer);
     }

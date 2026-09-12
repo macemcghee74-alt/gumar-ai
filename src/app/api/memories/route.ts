@@ -17,8 +17,7 @@ async function requireUser() {
 async function embeddingFor(content: string) {
   const provider = getEmbeddingProvider();
   if (!provider.configured) return null;
-  const result = await provider.embed(content);
-  return `[${result.vector.join(",")}]`;
+  return provider.embed(content);
 }
 
 export async function GET() {
@@ -56,7 +55,12 @@ export async function POST(request: Request) {
       memory_type: parsed.data.memoryType,
       importance: parsed.data.importance,
       confidence: parsed.data.confidence,
-      embedding
+      embedding: embedding ? `[${embedding.vector.join(",")}]` : null,
+      embedding_provider: embedding?.provider ?? null,
+      embedding_model: embedding?.model ?? null,
+      embedding_dimensions: embedding?.dimensions ?? null,
+      embedded_at: embedding ? new Date().toISOString() : null,
+      embedding_version: embedding?.version ?? null
     })
     .select("id, content, memory_type, importance, confidence, created_at")
     .single();
@@ -100,7 +104,12 @@ export async function PATCH(request: Request) {
       memory_type: parsed.data.memoryType,
       importance: parsed.data.importance,
       confidence: parsed.data.confidence,
-      embedding
+      embedding: embedding ? `[${embedding.vector.join(",")}]` : null,
+      embedding_provider: embedding?.provider ?? null,
+      embedding_model: embedding?.model ?? null,
+      embedding_dimensions: embedding?.dimensions ?? null,
+      embedded_at: embedding ? new Date().toISOString() : null,
+      embedding_version: embedding?.version ?? null
     })
     .select("id, content, memory_type, importance, confidence, created_at")
     .single();

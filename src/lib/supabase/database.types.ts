@@ -322,6 +322,11 @@ export type Database = {
           content: string
           created_at: string
           embedding: string | null
+          embedding_dimensions: number | null
+          embedding_model: string | null
+          embedding_provider: string | null
+          embedding_version: number | null
+          embedded_at: string | null
           id: string
           importance: number
           last_accessed_at: string | null
@@ -337,6 +342,11 @@ export type Database = {
           content: string
           created_at?: string
           embedding?: string | null
+          embedding_dimensions?: number | null
+          embedding_model?: string | null
+          embedding_provider?: string | null
+          embedding_version?: number | null
+          embedded_at?: string | null
           id?: string
           importance?: number
           last_accessed_at?: string | null
@@ -352,6 +362,11 @@ export type Database = {
           content?: string
           created_at?: string
           embedding?: string | null
+          embedding_dimensions?: number | null
+          embedding_model?: string | null
+          embedding_provider?: string | null
+          embedding_version?: number | null
+          embedded_at?: string | null
           id?: string
           importance?: number
           last_accessed_at?: string | null

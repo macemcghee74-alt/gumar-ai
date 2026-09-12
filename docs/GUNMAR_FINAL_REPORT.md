@@ -24,7 +24,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Safe provider status endpoint and control-center status display | VERIFIED (no secret exposure) |
 | Safe provider usage metadata persistence | VERIFIED (live migration and typed schema) |
 | Authenticated distributed chat rate limiting | VERIFIED (live Supabase RPC and RLS-protected counter table) |
-| Real embedding provider boundary and vector dimension validation | IMPLEMENTED BUT EXTERNALLY BLOCKED (explicit free embedding model selection) |
+| Real embedding provider boundary, metadata, and bounded backfill | IMPLEMENTED BUT EXTERNALLY BLOCKED (no credential or currently catalog-listed verified free model) |
+| Bounded coding-agent core and safety policy | VERIFIED (local orchestration, path containment, secret blocking, budgets, cancellation) |
 | Provider-independent Gunmar context composition with identity, personality, relationship, and relevant memory | VERIFIED (implemented and typechecked) |
 | Conservative conversation memory learning with deduplication and source linkage | VERIFIED (implemented and typechecked) |
 | Task-aware GunmarBrainRouter and provider capability metadata | VERIFIED (implemented and typechecked) |
@@ -63,6 +64,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - Provider streaming now terminates on `[DONE]`, preserves unknown usage as null/undefined, and supports resettable cooldown state for operational tests.
 - Chat context loads the newest bounded message window and restores chronological order before composing Gunmar context.
 - Chat rate limiting now uses an atomic authenticated Supabase/Postgres window counter instead of spoofable forwarding headers or process-local state.
+- Live embedding verification was attempted without exposing credentials; no local OpenRouter secret or current catalog match for the requested free candidates was available.
 - Consolidation deduplicates active memories, records audit metadata, and applies bounded relationship/personality updates without hidden chain-of-thought persistence.
 - Live provider smoke tests are externally blocked because provider secrets are not available in the local agent environment.
 - Multimodal provider execution, voice transcription/synthesis, and image generation remain externally blocked; the private storage and safety boundaries are in place.

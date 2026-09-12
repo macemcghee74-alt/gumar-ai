@@ -41,7 +41,12 @@ export async function learnFromUserMessage(
       importance: candidate.importance,
       confidence: candidate.confidence,
       source_message_id: sourceMessageId ?? null,
-      embedding: embedding ? `[${embedding.vector.join(",")}]` : null
+      embedding: embedding ? `[${embedding.vector.join(",")}]` : null,
+      embedding_provider: embedding?.provider ?? null,
+      embedding_model: embedding?.model ?? null,
+      embedding_dimensions: embedding?.dimensions ?? null,
+      embedded_at: embedding ? new Date().toISOString() : null,
+      embedding_version: embedding?.version ?? null
     });
     if (error) throw new Error("Unable to save learned memory.");
   }
