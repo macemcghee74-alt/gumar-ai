@@ -790,7 +790,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_memories: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          confidence: number
+          content: string
+          id: string
+          importance: number
+          memory_type: string
+          rank_score: number
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

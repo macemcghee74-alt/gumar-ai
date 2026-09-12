@@ -20,3 +20,10 @@ Mort (`rakjydmgwwgtdislanbt`) and Loop (`zqalnvfwxmfrnyjcuehq`) were not accesse
 ## Other providers
 
 Cloud AI, embeddings, speech, image, web search, Vercel, and training credentials are not configured locally. Their adapters must remain fail-closed until deployment secrets are supplied.
+
+Current implementation work completed behind those gates:
+
+- provider-agnostic cloud streaming boundary with timeout, retry, cancellation, usage headers, and typed errors;
+- deterministic memory candidate extraction, scoring, deduplication, correction/supersession API;
+- live pgvector hybrid search RPC with per-user filtering;
+- request body limits, basic rate limiting, and safe relative auth redirects.

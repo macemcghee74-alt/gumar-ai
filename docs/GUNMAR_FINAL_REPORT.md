@@ -20,10 +20,12 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Reviewed Gunmar SQL migration and install artifact | VERIFIED |
 | Live Gunmar Supabase migration, RLS QA, and generated types | VERIFIED |
 | Conversation sidebar/history persistence | VERIFIED (implemented and typechecked) |
-| Replaceable cloud AI boundary | IMPLEMENTED BUT EXTERNALLY BLOCKED |
+| Provider-agnostic cloud streaming boundary with retries/timeouts | IMPLEMENTED BUT EXTERNALLY BLOCKED (provider credentials) |
 | Supabase identity/conversation/message/memory schema | VERIFIED |
 | Authentication and durable message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED (live email/provider credentials) |
-| Semantic memory extraction/retrieval | NOT IMPLEMENTED |
+| Memory candidate extraction, scoring, deduplication, correction API | VERIFIED (deterministic foundation) |
+| pgvector hybrid memory search RPC | IMPLEMENTED BUT EXTERNALLY BLOCKED (embedding provider) |
+| Semantic memory extraction/retrieval | IMPLEMENTED BUT EXTERNALLY BLOCKED (embedding/provider orchestration) |
 | Personality, relationships, journal, autonomy, tools | NOT IMPLEMENTED |
 | Vision, image generation, voice, web research | NOT IMPLEMENTED |
 | Tests and production deployment | NOT IMPLEMENTED |
@@ -35,6 +37,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - `npm run build` passed.
 - Live Supabase verification used only project `spzedizgazoyfovzdgjb`; Mort and Loop were not accessed.
 - Cloud AI, email delivery, Vercel, and multimodal/training providers remain externally gated; no success was faked.
+- Provider configuration fails closed, with bounded timeout/retry/rate-limit handling.
+- Auth callback redirects are constrained to same-origin relative paths and chat requests have bounded body/rate limits.
 - See `docs/GUNMAR_EXTERNAL_GATES.md` for the current gate list.
 
 ## Required environment

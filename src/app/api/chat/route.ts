@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
-import { chatInputSchema, getAIProvider } from "@/lib/ai/provider";
+import { AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { clientKey, consumeRateLimit, readJson } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const parsed = chatInputSchema.safeParse(await request.json());
+  const rate = consumeRateLimit(`chat:${clientKey(request)}`);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many requests." }, { status: 429, headers: { "retry-after": String(rate.retryAfter) } });
+
+  let body: unknown;
+  try {
+    body = await readJson(request);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid request body.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+  const parsed = chatInputSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Message must be between 1 and 12,000 characters." }, { status: 400 });
@@ -40,7 +51,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const stream = await getAIProvider().streamReply(parsed.data);
+    const result = await getAIProvider().streamReply(parsed.data, { signal: request.signal });
+    const stream = result.stream;
     const reader = stream.getReader();
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
@@ -65,7 +77,11 @@ export async function POST(request: Request) {
     });
     return new Response(responseStream, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-cache", ...(conversationId ? { "x-conversation-id": conversationId } : {}) } });
   } catch (error) {
+    if (error instanceof AIProviderError && error.code === "configuration") {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     const message = error instanceof Error ? error.message : "Unable to contact the AI provider.";
-    return NextResponse.json({ error: message }, { status: 503 });
+    const status = error instanceof AIProviderError && error.code === "rate_limit" ? 429 : 503;
+    return NextResponse.json({ error: message }, { status });
   }
 }

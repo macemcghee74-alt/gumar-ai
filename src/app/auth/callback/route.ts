@@ -5,7 +5,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || "/";
-  const redirectUrl = new URL(next, url.origin);
+  const redirectUrl = new URL(url.origin);
+  redirectUrl.pathname = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   if (!code) {
     redirectUrl.pathname = "/auth";
