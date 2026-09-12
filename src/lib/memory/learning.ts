@@ -1,5 +1,6 @@
 import type { getSupabaseServerClient } from "@/lib/supabase/server";
 import { extractMemoryCandidates } from "@/lib/memory/engine";
+import { getEmbeddingProvider } from "@/lib/embeddings/provider";
 
 type ServerSupabase = NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>;
 
@@ -11,6 +12,7 @@ export async function learnFromUserMessage(
 ) {
   const candidates = extractMemoryCandidates(message);
   if (candidates.length === 0) return;
+  const embeddingProvider = getEmbeddingProvider();
 
   for (const candidate of candidates) {
     const { data: existing, error: lookupError } = await supabase
@@ -31,13 +33,15 @@ export async function learnFromUserMessage(
       continue;
     }
 
+    const embedding = embeddingProvider.configured ? await embeddingProvider.embed(candidate.content) : undefined;
     const { error } = await supabase.from("memories").insert({
       user_id: userId,
       content: candidate.content,
       memory_type: candidate.memoryType,
       importance: candidate.importance,
       confidence: candidate.confidence,
-      source_message_id: sourceMessageId ?? null
+      source_message_id: sourceMessageId ?? null,
+      embedding: embedding ? `[${embedding.vector.join(",")}]` : null
     });
     if (error) throw new Error("Unable to save learned memory.");
   }

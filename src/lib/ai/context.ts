@@ -1,7 +1,9 @@
 import type { AIMessage } from "@/lib/ai/provider";
 import type { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getEmbeddingProvider } from "@/lib/embeddings/provider";
 
 type ServerSupabase = NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>;
+type MemoryContext = { content: string; memory_type: string; importance: number; confidence: number; created_at: string };
 
 const identityDefaults = {
   name: "Gunmar",
@@ -21,7 +23,8 @@ export async function composeGunmarContext(
   ]);
 
   const query = messages[messages.length - 1]?.content ?? "";
-  const relevantMemories = selectRelevantMemories(memories ?? [], query);
+  const semanticMemories = await retrieveSemanticMemories(supabase, query);
+  const relevantMemories = semanticMemories.length > 0 ? semanticMemories : selectRelevantMemories(memories ?? [], query);
   const principles = readJsonStringArray(identity?.behavioral_principles, identityDefaults.principles);
   const preferences = readJsonRecord(identity?.stable_preferences);
   const identityName = identity?.name ?? identityDefaults.name;
@@ -41,8 +44,27 @@ export async function composeGunmarContext(
   return [{ role: "system", content: context }, ...messages];
 }
 
+async function retrieveSemanticMemories(supabase: ServerSupabase, query: string): Promise<MemoryContext[]> {
+  const provider = getEmbeddingProvider();
+  if (!provider.configured || !query.trim()) return [];
+  const embedding = await provider.embed(query);
+  const { data, error } = await supabase.rpc("search_memories", {
+    query_embedding: `[${embedding.vector.join(",")}]`,
+    match_count: 8
+  });
+  if (error) throw new Error("Unable to retrieve semantic memories.");
+  const rows = (data ?? []) as Array<Pick<MemoryContext, "content" | "memory_type" | "importance" | "confidence">>;
+  return rows.map((memory) => ({
+    content: memory.content,
+    memory_type: memory.memory_type,
+    importance: memory.importance,
+    confidence: memory.confidence,
+    created_at: new Date().toISOString()
+  }));
+}
+
 function selectRelevantMemories(
-  memories: Array<{ content: string; memory_type: string; importance: number; confidence: number; created_at: string }>,
+  memories: MemoryContext[],
   query: string
 ) {
   const terms = new Set(query.toLowerCase().split(/\W+/).filter((term) => term.length >= 3));

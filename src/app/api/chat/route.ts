@@ -4,14 +4,11 @@ import { composeGunmarContext } from "@/lib/ai/context";
 import { learnFromUserMessage } from "@/lib/memory/learning";
 import { recordMeaningfulInteraction } from "@/lib/learning/state";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { clientKey, consumeRateLimit, readJson } from "@/lib/security/request";
+import { readJson } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const rate = consumeRateLimit(`chat:${clientKey(request)}`);
-  if (!rate.allowed) return NextResponse.json({ error: "Too many requests." }, { status: 429, headers: { "retry-after": String(rate.retryAfter) } });
-
   let body: unknown;
   try {
     body = await readJson(request);
@@ -35,6 +32,21 @@ export async function POST(request: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return NextResponse.json({ error: "Sign in to save conversations." }, { status: 401 });
       userId = user.id;
+      const limit = Number(process.env.GUNMAR_CHAT_RATE_LIMIT ?? 30);
+      const windowSeconds = Number(process.env.GUNMAR_CHAT_RATE_WINDOW_SECONDS ?? 60);
+      const { data: rateRows, error: rateError } = await supabase.rpc("consume_rate_limit", {
+        p_scope: "chat",
+        p_limit: Number.isInteger(limit) && limit > 0 ? limit : 30,
+        p_window_seconds: Number.isInteger(windowSeconds) && windowSeconds > 0 ? windowSeconds : 60
+      });
+      if (rateError) throw new Error("Unable to verify request rate limit.");
+      const rate = rateRows?.[0];
+      if (!rate?.allowed) {
+        return NextResponse.json({ error: "Too many requests." }, {
+          status: 429,
+          headers: { "retry-after": String(rate?.retry_after ?? 60) }
+        });
+      }
 
       if (conversationId) {
         const { data: conversation } = await supabase.from("conversations").select("id").eq("id", conversationId).eq("user_id", user.id).maybeSingle();

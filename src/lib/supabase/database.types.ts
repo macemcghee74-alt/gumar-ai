@@ -934,6 +934,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_rate_limit: {
+        Args: { p_limit?: number; p_scope: string; p_window_seconds?: number }
+        Returns: {
+          allowed: boolean
+          request_count: number
+          retry_after: number
+        }[]
+      }
       search_memories: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {

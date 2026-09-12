@@ -25,6 +25,8 @@ Task-aware routing metadata and `GunmarBrainRouter` are implemented. Groq is pre
 
 Training candidate review, dataset hashing/versioning, and the provider-neutral `TrainingProvider` interface are implemented. Actual upload/jobs/models remain blocked until an explicitly selected training service and credentials are supplied; no provider is assumed or contacted.
 
+Semantic embeddings are wired to an explicit OpenRouter embeddings model configuration (`GUNMAR_EMBEDDING_MODEL`) and validate the live `vector(1536)` schema. No embedding model is selected by default because the free availability and pricing of a specific model must be confirmed before production configuration. Until that variable is set, memory safely uses its deterministic lexical retrieval path and does not persist placeholder vectors.
+
 ## Live provider verification
 
 The local environment does not contain `CEREBRAS_API_KEY`, `GROQ_API_KEY`, or `OPENROUTER_API_KEY`, and no production URL/observability credentials are available to this agent. Live provider calls, fallback smoke tests, streaming verification, and production persistence verification remain externally blocked. No provider response was faked.
