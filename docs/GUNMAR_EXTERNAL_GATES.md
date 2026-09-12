@@ -21,6 +21,10 @@ Mort (`rakjydmgwwgtdislanbt`) and Loop (`zqalnvfwxmfrnyjcuehq`) were not accesse
 
 `CEREBRAS_API_KEY`, `GROQ_API_KEY`, and `OPENROUTER_API_KEY` are not configured locally. The provider router is implemented and remains fail-closed until deployment secrets are supplied. Routing is Cerebras, Groq, then OpenRouter, with `openrouter/free` as the free-first default.
 
+Task-aware routing metadata and `GunmarBrainRouter` are implemented. Groq is preferred for lightweight extraction/reflection tasks, Cerebras for conversation/reasoning, and OpenRouter for research/evaluation tasks. Ensemble mode remains disabled by default.
+
+Training candidate review, dataset hashing/versioning, and the provider-neutral `TrainingProvider` interface are implemented. Actual upload/jobs/models remain blocked until an explicitly selected training service and credentials are supplied; no provider is assumed or contacted.
+
 Current implementation work completed behind those gates:
 
 - provider-agnostic cloud streaming boundary with timeout, cancellation, bounded fallback, cooldown health, usage metadata, and typed errors;

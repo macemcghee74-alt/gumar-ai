@@ -136,6 +136,39 @@ export type Database = {
         }
         Relationships: []
       }
+      dataset_versions: {
+        Row: {
+          approval_state: string
+          content_hash: string
+          created_at: string
+          dataset_id: string
+          example_count: number
+          id: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          approval_state?: string
+          content_hash: string
+          created_at?: string
+          dataset_id: string
+          example_count?: number
+          id?: string
+          user_id: string
+          version: number
+        }
+        Update: {
+          approval_state?: string
+          content_hash?: string
+          created_at?: string
+          dataset_id?: string
+          example_count?: number
+          id?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       generated_assets: {
         Row: {
           asset_type: string
@@ -730,25 +763,82 @@ export type Database = {
         Row: {
           approved: boolean
           created_at: string
+          correction: string | null
           id: string
           input: string
+          metadata: Json
           output: string
+          source: string
+          status: string
           user_id: string
         }
         Insert: {
           approved?: boolean
           created_at?: string
+          correction?: string | null
           id?: string
           input: string
+          metadata?: Json
           output: string
+          source?: string
+          status?: string
           user_id: string
         }
         Update: {
           approved?: boolean
           created_at?: string
+          correction?: string | null
           id?: string
           input?: string
+          metadata?: Json
           output?: string
+          source?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      training_jobs: {
+        Row: {
+          base_model: string
+          created_at: string
+          dataset_version_id: string
+          error_message: string | null
+          external_job_id: string | null
+          finished_at: string | null
+          id: string
+          provider: string
+          result_model: string | null
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          base_model: string
+          created_at?: string
+          dataset_version_id: string
+          error_message?: string | null
+          external_job_id?: string | null
+          finished_at?: string | null
+          id?: string
+          provider: string
+          result_model?: string | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          base_model?: string
+          created_at?: string
+          dataset_version_id?: string
+          error_message?: string | null
+          external_job_id?: string | null
+          finished_at?: string | null
+          id?: string
+          provider?: string
+          result_model?: string | null
+          started_at?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: []

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { AIMessage, AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
+import { composeGunmarContext } from "@/lib/ai/context";
+import { learnFromUserMessage } from "@/lib/memory/learning";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { clientKey, consumeRateLimit, readJson } from "@/lib/security/request";
 
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
     const supabase = await getSupabaseServerClient();
     let userId: string | null = null;
     let conversationId = parsed.data.conversationId;
+    let userMessageId: string | undefined;
 
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,8 +44,10 @@ export async function POST(request: Request) {
         conversationId = conversation.id;
       }
 
-      const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, user_id: user.id, role: "user", content: parsed.data.message });
+      const { data: savedUserMessage, error } = await supabase.from("messages").insert({ conversation_id: conversationId, user_id: user.id, role: "user", content: parsed.data.message }).select("id").single();
       if (error) throw new Error("Unable to save message.");
+      if (!savedUserMessage) throw new Error("Unable to identify saved message.");
+      userMessageId = savedUserMessage.id;
 
       if (!parsed.data.conversationId) {
         const title = parsed.data.message.trim().slice(0, 80);
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     let messages: AIMessage[] = [{ role: "user", content: parsed.data.message }];
-    if (supabase && conversationId) {
+    if (supabase && conversationId && userId) {
       const { data: history, error: historyError } = await supabase
         .from("messages")
         .select("role, content")
@@ -66,6 +71,7 @@ export async function POST(request: Request) {
         role: message.role as "user" | "assistant",
         content: message.content
       }));
+      messages = await composeGunmarContext(supabase, userId, messages);
     }
 
     const result = await getAIProvider().streamReply({ ...parsed.data, messages }, { signal: request.signal });
@@ -97,6 +103,11 @@ export async function POST(request: Request) {
               cost: 0
             });
             if (usageError) console.error("Unable to persist provider usage.", usageError);
+            try {
+              await learnFromUserMessage(supabase, userId, parsed.data.message, userMessageId);
+            } catch (learningError) {
+              console.error("Unable to persist learned memory.", learningError);
+            }
           }
           controller.close();
           return;

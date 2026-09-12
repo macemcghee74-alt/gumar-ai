@@ -23,6 +23,20 @@ export type AIUsage = {
 export type AIProviderName = "cerebras" | "groq" | "openrouter";
 export type AIProviderStatus = "available" | "missing_key" | "rate_limited" | "temporarily_failed" | "disabled";
 export type AIProviderErrorCode = "configuration" | "rate_limit" | "timeout" | "provider";
+export type BrainTaskType = "conversation" | "reasoning" | "memory_extraction" | "memory_retrieval_support" | "summarization" | "reflection" | "journal" | "tool_selection" | "research_synthesis" | "evaluation" | "training_data_generation";
+
+export type ProviderCapabilities = {
+  streaming: boolean;
+  structuredOutputs: boolean;
+  toolCalls: boolean;
+  modalities: Array<"text">;
+  taskTypes: BrainTaskType[];
+};
+
+export type BrainRequest = ChatInput & {
+  taskType?: BrainTaskType;
+  requiredCapabilities?: Partial<Pick<ProviderCapabilities, "structuredOutputs" | "toolCalls">>;
+};
 
 export class AIProviderError extends Error {
   constructor(
@@ -54,6 +68,7 @@ export interface AIProvider {
   readonly name: AIProviderName;
   readonly model: string;
   readonly configured: boolean;
+  readonly capabilities: ProviderCapabilities;
   getStatus(): ProviderStatus;
   streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult>;
 }
@@ -72,6 +87,13 @@ const providerNames = new Set<AIProviderName>(["cerebras", "groq", "openrouter"]
 
 export class OpenAICompatibleProvider implements AIProvider {
   readonly configured: boolean;
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    structuredOutputs: false,
+    toolCalls: true,
+    modalities: ["text"],
+    taskTypes: ["conversation", "reasoning", "memory_extraction", "memory_retrieval_support", "summarization", "reflection", "journal", "tool_selection", "research_synthesis", "evaluation", "training_data_generation"]
+  };
 
   constructor(private readonly definition: ProviderDefinition) {
     this.configured = Boolean(definition.apiKey);
@@ -196,8 +218,15 @@ export class GunmarProviderRouter implements AIProvider {
   readonly name = "cerebras" as const;
   readonly model = "router";
   readonly configured = this.providers.some((provider) => provider.configured);
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    structuredOutputs: true,
+    toolCalls: true,
+    modalities: ["text"],
+    taskTypes: ["conversation", "reasoning", "memory_extraction", "memory_retrieval_support", "summarization", "reflection", "journal", "tool_selection", "research_synthesis", "evaluation", "training_data_generation"]
+  };
 
-  constructor(private readonly providers: AIProvider[]) {}
+  constructor(protected readonly providers: AIProvider[]) {}
 
   getStatus(): ProviderStatus {
     return { configured: this.configured, status: this.configured ? "available" : "missing_key" };
@@ -208,8 +237,12 @@ export class GunmarProviderRouter implements AIProvider {
   }
 
   async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
+    return this.streamFromProviders(this.providers, input, options);
+  }
+
+  protected async streamFromProviders(providers: AIProvider[], input: ChatInput, options?: { signal?: AbortSignal }) {
     const failures: AIProviderError[] = [];
-    for (const provider of this.providers) {
+    for (const provider of providers) {
       if (provider.getStatus().status === "missing_key" || provider.getStatus().status === "rate_limited" || provider.getStatus().status === "temporarily_failed") continue;
       try {
         return await provider.streamReply(input, options);
@@ -221,6 +254,21 @@ export class GunmarProviderRouter implements AIProvider {
     }
     const last = failures[failures.length - 1];
     throw last ?? new AIProviderError("No Gunmar cloud provider is configured.", "configuration");
+  }
+}
+
+export class GunmarBrainRouter extends GunmarProviderRouter {
+  async streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
+    const taskType = input.taskType ?? "conversation";
+    const preferredOrder = taskType === "memory_extraction" || taskType === "summarization" || taskType === "reflection" || taskType === "journal" || taskType === "tool_selection" || taskType === "training_data_generation"
+      ? ["groq", "cerebras", "openrouter"]
+      : taskType === "research_synthesis" || taskType === "evaluation"
+        ? ["openrouter", "cerebras", "groq"]
+        : ["cerebras", "groq", "openrouter"];
+    const ordered = [...preferredOrder.map((name) => this.providers.find((provider) => provider.name === name)).filter((provider): provider is AIProvider => Boolean(provider)), ...this.providers]
+      .filter((provider, index, all) => all.indexOf(provider) === index)
+      .filter((provider) => supportsRequiredCapabilities(provider, input.requiredCapabilities));
+    return this.streamFromProviders(ordered, input, options);
   }
 }
 
@@ -238,7 +286,7 @@ export function createProviderRouter() {
   const requested = process.env.GUNMAR_PROVIDER_ORDER?.split(",").map((value) => value.trim().toLowerCase()).filter(isProviderName)
     ?? [process.env.GUNMAR_PRIMARY_PROVIDER?.toLowerCase(), "groq", "openrouter"].filter(isProviderName);
   const order = [...new Set(requested)];
-  return new GunmarProviderRouter(order.map((name) => providers.get(name)).filter((provider): provider is AIProvider => Boolean(provider)));
+  return new GunmarBrainRouter(order.map((name) => providers.get(name)).filter((provider): provider is AIProvider => Boolean(provider)));
 }
 
 export function getProviderStatuses() {
@@ -249,6 +297,13 @@ class MockProvider implements AIProvider {
   readonly name = "openrouter" as const;
   readonly model = "mock";
   readonly configured = true;
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    structuredOutputs: false,
+    toolCalls: false,
+    modalities: ["text"],
+    taskTypes: ["conversation"]
+  };
 
   getStatus(): ProviderStatus {
     return { configured: true, status: "available" };
@@ -266,6 +321,12 @@ class MockProvider implements AIProvider {
 
 function isProviderName(value: string | undefined): value is AIProviderName {
   return Boolean(value && providerNames.has(value as AIProviderName));
+}
+
+function supportsRequiredCapabilities(provider: AIProvider, required?: BrainRequest["requiredCapabilities"]) {
+  if (!required) return true;
+  return (!required.structuredOutputs || provider.capabilities.structuredOutputs)
+    && (!required.toolCalls || provider.capabilities.toolCalls);
 }
 
 function setCooldown(provider: AIProviderName, status: AIProviderStatus) {
