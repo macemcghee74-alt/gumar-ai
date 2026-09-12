@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { AIMessage, AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
 import { composeGunmarContext } from "@/lib/ai/context";
 import { learnFromUserMessage } from "@/lib/memory/learning";
+import { recordMeaningfulInteraction } from "@/lib/learning/state";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { clientKey, consumeRateLimit, readJson } from "@/lib/security/request";
 
@@ -107,6 +108,11 @@ export async function POST(request: Request) {
               await learnFromUserMessage(supabase, userId, parsed.data.message, userMessageId);
             } catch (learningError) {
               console.error("Unable to persist learned memory.", learningError);
+            }
+            try {
+              await recordMeaningfulInteraction(supabase, userId, { summary: "Completed a conversation turn." });
+            } catch (relationshipError) {
+              console.error("Unable to persist relationship continuity.", relationshipError);
             }
           }
           controller.close();

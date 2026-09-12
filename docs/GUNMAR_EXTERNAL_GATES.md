@@ -25,6 +25,12 @@ Task-aware routing metadata and `GunmarBrainRouter` are implemented. Groq is pre
 
 Training candidate review, dataset hashing/versioning, and the provider-neutral `TrainingProvider` interface are implemented. Actual upload/jobs/models remain blocked until an explicitly selected training service and credentials are supplied; no provider is assumed or contacted.
 
+## Live provider verification
+
+The local environment does not contain `CEREBRAS_API_KEY`, `GROQ_API_KEY`, or `OPENROUTER_API_KEY`, and no production URL/observability credentials are available to this agent. Live provider calls, fallback smoke tests, streaming verification, and production persistence verification remain externally blocked. No provider response was faked.
+
+The application remains fail-closed when those server-side secrets are unavailable. Required deployment variables are listed in `.env.example`.
+
 Current implementation work completed behind those gates:
 
 - provider-agnostic cloud streaming boundary with timeout, cancellation, bounded fallback, cooldown health, usage metadata, and typed errors;

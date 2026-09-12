@@ -27,6 +27,9 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Conservative conversation memory learning with deduplication and source linkage | VERIFIED (implemented and typechecked) |
 | Task-aware GunmarBrainRouter and provider capability metadata | VERIFIED (implemented and typechecked) |
 | Training candidate review and reproducible dataset-version foundation | IMPLEMENTED BUT EXTERNALLY BLOCKED (training provider credentials) |
+| Bounded personality evolution with auditable history | VERIFIED (bounded service and cooldown) |
+| Relationship continuity with conservative interaction updates | VERIFIED (bounded service and RLS-backed persistence) |
+| Journal API and idempotent consolidation boundary | VERIFIED (implemented and typechecked) |
 | Supabase identity/conversation/message/memory schema | VERIFIED |
 | Durable original Gunmar identity state and read API | VERIFIED |
 | Authentication and durable message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED (live email/provider credentials) |
@@ -50,6 +53,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - Provider routing is Cerebras → Groq → OpenRouter; OpenRouter defaults to `openrouter/free`, and no unsupported provider is referenced.
 - Chat context now composes durable Gunmar identity, user-specific personality/relationship state, and relevant active memories before inference.
 - Approved training candidates can be reviewed and exported into hashed, versioned dataset records; no candidate is automatically promoted or sent to a training service.
+- Consolidation deduplicates active memories, records audit metadata, and applies bounded relationship/personality updates without hidden chain-of-thought persistence.
+- Live provider smoke tests are externally blocked because provider secrets are not available in the local agent environment.
 - Auth callback redirects are constrained to same-origin relative paths and chat requests have bounded body/rate limits.
 - See `docs/GUNMAR_EXTERNAL_GATES.md` for the current gate list.
 
