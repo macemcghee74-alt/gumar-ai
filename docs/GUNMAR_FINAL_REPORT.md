@@ -2,7 +2,7 @@
 
 ## Status
 
-This milestone establishes the repository foundation. It is not a claim that every capability in the broad product directive is complete.
+This report tracks verified repository milestones. It is not a claim that every capability in the broad product directive is complete.
 
 ## Architecture
 
@@ -17,6 +17,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Supabase SSR client and authenticated message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Passwordless Supabase authentication flow | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Authenticated memory API validation and ownership boundary | IMPLEMENTED BUT EXTERNALLY BLOCKED |
+| Reviewed Gunmar SQL migration and install artifact | VERIFIED (static checks only) |
+| Live Gunmar Supabase migration, RLS QA, and generated types | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Replaceable cloud AI boundary | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Supabase identity/conversation/message/memory schema | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Authentication and durable message persistence | NOT IMPLEMENTED |
@@ -31,6 +33,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - `npm run typecheck` passed.
 - `npm run build` passed.
 - Production cloud verification is blocked until Supabase, AI provider, and Vercel credentials are supplied.
+- The Supabase MCP is configured for Gunmar but is not callable in the current agent session; see `docs/GUNMAR_EXTERNAL_GATES.md`.
 
 ## Required environment
 
