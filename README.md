@@ -10,6 +10,6 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The default `AI_PROVIDER=mock` mode is safe for local UI development. Configure a server-side cloud provider and Supabase before enabling production inference or persistence.
+The default cloud routing order is Cerebras, Groq, then OpenRouter. Set `AI_PROVIDER=mock` only for local UI development; production requires one or more server-side provider keys from `.env.example`.
 
 See [the architecture](docs/GUNMAR_ARCHITECTURE.md) and [implementation plan](docs/GUNMAR_IMPLEMENTATION_PLAN.md).

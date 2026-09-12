@@ -17,14 +17,14 @@ The remaining advisor findings are the expected `vector` extension-in-public war
 
 Mort (`rakjydmgwwgtdislanbt`) and Loop (`zqalnvfwxmfrnyjcuehq`) were not accessed or modified.
 
-## Other providers
+## Cloud inference
 
-Cloud AI, embeddings, speech, image, web search, Vercel, and training credentials are not configured locally. Their adapters must remain fail-closed until deployment secrets are supplied.
+`CEREBRAS_API_KEY`, `GROQ_API_KEY`, and `OPENROUTER_API_KEY` are not configured locally. The provider router is implemented and remains fail-closed until deployment secrets are supplied. Routing is Cerebras, Groq, then OpenRouter, with `openrouter/free` as the free-first default.
 
 Current implementation work completed behind those gates:
 
-- provider-agnostic cloud streaming boundary with timeout, retry, cancellation, usage headers, and typed errors;
-- production provider mode now fails closed when `AI_PROVIDER_ENDPOINT`, `AI_PROVIDER_API_KEY`, or `AI_MODEL` is missing; mock mode requires explicit `AI_PROVIDER=mock`;
+- provider-agnostic cloud streaming boundary with timeout, cancellation, bounded fallback, cooldown health, usage metadata, and typed errors;
+- Cerebras, Groq, and OpenRouter adapters with server-only keys; mock mode requires explicit `AI_PROVIDER=mock`;
 - deterministic memory candidate extraction, scoring, deduplication, correction/supersession API;
 - live pgvector hybrid search RPC with per-user filtering;
 - request body limits, basic rate limiting, and safe relative auth redirects.

@@ -20,6 +20,8 @@ export type AIUsage = {
   totalTokens?: number;
 };
 
+export type AIProviderName = "cerebras" | "groq" | "openrouter";
+export type AIProviderStatus = "available" | "missing_key" | "rate_limited" | "temporarily_failed" | "disabled";
 export type AIProviderErrorCode = "configuration" | "rate_limit" | "timeout" | "provider";
 
 export class AIProviderError extends Error {
@@ -27,7 +29,8 @@ export class AIProviderError extends Error {
     message: string,
     readonly code: AIProviderErrorCode,
     readonly retryable = false,
-    readonly status?: number
+    readonly status?: number,
+    readonly provider?: AIProviderName
   ) {
     super(message);
     this.name = "AIProviderError";
@@ -36,16 +39,242 @@ export class AIProviderError extends Error {
 
 export type AIStreamResult = {
   stream: ReadableStream<Uint8Array>;
-  provider: string;
+  provider: AIProviderName;
   model: string;
   usage?: AIUsage;
+  latencyMs: number;
+};
+
+export type ProviderStatus = {
+  configured: boolean;
+  status: AIProviderStatus;
 };
 
 export interface AIProvider {
+  readonly name: AIProviderName;
+  readonly model: string;
+  readonly configured: boolean;
+  getStatus(): ProviderStatus;
   streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult>;
 }
 
+type ProviderDefinition = {
+  name: AIProviderName;
+  endpoint: string;
+  model: string;
+  apiKey?: string;
+  headers?: Record<string, string>;
+};
+
 const encoder = new TextEncoder();
+const cooldowns = new Map<AIProviderName, { status: AIProviderStatus; until: number }>();
+const providerNames = new Set<AIProviderName>(["cerebras", "groq", "openrouter"]);
+
+export class OpenAICompatibleProvider implements AIProvider {
+  readonly configured: boolean;
+
+  constructor(private readonly definition: ProviderDefinition) {
+    this.configured = Boolean(definition.apiKey);
+  }
+
+  get name() {
+    return this.definition.name;
+  }
+
+  get model() {
+    return this.definition.model;
+  }
+
+  getStatus(): ProviderStatus {
+    const cooldown = cooldowns.get(this.name);
+    if (!this.configured) return { configured: false, status: "missing_key" };
+    if (cooldown && cooldown.until > Date.now()) return { configured: true, status: cooldown.status };
+    return { configured: true, status: "available" };
+  }
+
+  async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
+    if (!this.configured) {
+      throw new AIProviderError(`${this.name} is not configured.`, "configuration", false, undefined, this.name);
+    }
+    const cooldown = cooldowns.get(this.name);
+    if (cooldown && cooldown.until > Date.now()) {
+      throw new AIProviderError(`${this.name} is temporarily unavailable.`, cooldown.status === "rate_limited" ? "rate_limit" : "provider", true, undefined, this.name);
+    }
+
+    const timeoutMs = Number(process.env.GUNMAR_PROVIDER_TIMEOUT_MS ?? 30_000);
+    const startedAt = Date.now();
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), timeoutMs);
+    const signal = options?.signal ? AbortSignal.any([options.signal, timeout.signal]) : timeout.signal;
+
+    try {
+      const response = await fetch(this.definition.endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "text/event-stream, text/plain",
+          authorization: `Bearer ${this.definition.apiKey}`,
+          ...this.definition.headers
+        },
+        body: JSON.stringify({
+          model: this.model,
+          stream: true,
+          messages: input.messages ?? [{ role: "user", content: input.message }]
+        }),
+        signal
+      });
+
+      if (!response.ok || !response.body) {
+        const retryable = response.status === 429 || response.status >= 500;
+        const code = response.status === 429 ? "rate_limit" : "provider";
+        setCooldown(this.name, code === "rate_limit" ? "rate_limited" : "temporarily_failed");
+        throw new AIProviderError(`The ${this.name} provider returned status ${response.status}.`, code, retryable, response.status, this.name);
+      }
+
+      clearCooldown(this.name);
+      const contentType = response.headers.get("content-type") ?? "";
+      return {
+        stream: contentType.includes("text/event-stream") ? parseSseTextStream(response.body) : response.body,
+        provider: this.name,
+        model: this.model,
+        usage: readUsageHeaders(response.headers),
+        latencyMs: Date.now() - startedAt
+      };
+    } catch (error) {
+      if (error instanceof AIProviderError) throw error;
+      if (options?.signal?.aborted) throw error;
+      if (timeout.signal.aborted) {
+        setCooldown(this.name, "temporarily_failed");
+        throw new AIProviderError(`The ${this.name} provider timed out.`, "timeout", true, undefined, this.name);
+      }
+      setCooldown(this.name, "temporarily_failed");
+      throw new AIProviderError(`Unable to reach ${this.name}.`, "provider", true, undefined, this.name);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+export class CerebrasProvider extends OpenAICompatibleProvider {
+  constructor() {
+    super({
+      name: "cerebras",
+      endpoint: "https://api.cerebras.ai/v1/chat/completions",
+      model: process.env.GUNMAR_CEREBRAS_MODEL ?? "gpt-oss-120b",
+      apiKey: process.env.CEREBRAS_API_KEY
+    });
+  }
+}
+
+export class GroqProvider extends OpenAICompatibleProvider {
+  constructor() {
+    super({
+      name: "groq",
+      endpoint: "https://api.groq.com/openai/v1/chat/completions",
+      model: process.env.GUNMAR_GROQ_MODEL ?? "openai/gpt-oss-120b",
+      apiKey: process.env.GROQ_API_KEY
+    });
+  }
+}
+
+export class OpenRouterProvider extends OpenAICompatibleProvider {
+  constructor() {
+    super({
+      name: "openrouter",
+      endpoint: "https://openrouter.ai/api/v1/chat/completions",
+      model: process.env.GUNMAR_OPENROUTER_MODEL ?? "openrouter/free",
+      apiKey: process.env.OPENROUTER_API_KEY,
+      headers: {
+        ...(process.env.NEXT_PUBLIC_APP_URL ? { "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL } : {}),
+        "X-OpenRouter-Title": "Gunmar AI"
+      }
+    });
+  }
+}
+
+export class GunmarProviderRouter implements AIProvider {
+  readonly name = "cerebras" as const;
+  readonly model = "router";
+  readonly configured = this.providers.some((provider) => provider.configured);
+
+  constructor(private readonly providers: AIProvider[]) {}
+
+  getStatus(): ProviderStatus {
+    return { configured: this.configured, status: this.configured ? "available" : "missing_key" };
+  }
+
+  get providerStatuses() {
+    return Object.fromEntries(this.providers.map((provider) => [provider.name, provider.getStatus()])) as Record<AIProviderName, ProviderStatus>;
+  }
+
+  async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
+    const failures: AIProviderError[] = [];
+    for (const provider of this.providers) {
+      if (provider.getStatus().status === "missing_key" || provider.getStatus().status === "rate_limited" || provider.getStatus().status === "temporarily_failed") continue;
+      try {
+        return await provider.streamReply(input, options);
+      } catch (error) {
+        if (error instanceof AIProviderError) failures.push(error);
+        else throw error;
+        if (options?.signal?.aborted) throw error;
+      }
+    }
+    const last = failures[failures.length - 1];
+    throw last ?? new AIProviderError("No Gunmar cloud provider is configured.", "configuration");
+  }
+}
+
+export function getAIProvider(): AIProvider {
+  if (process.env.AI_PROVIDER === "mock") return new MockProvider();
+  return createProviderRouter();
+}
+
+export function createProviderRouter() {
+  const providers = new Map<AIProviderName, AIProvider>([
+    ["cerebras", new CerebrasProvider()],
+    ["groq", new GroqProvider()],
+    ["openrouter", new OpenRouterProvider()]
+  ]);
+  const requested = process.env.GUNMAR_PROVIDER_ORDER?.split(",").map((value) => value.trim().toLowerCase()).filter(isProviderName)
+    ?? [process.env.GUNMAR_PRIMARY_PROVIDER?.toLowerCase(), "groq", "openrouter"].filter(isProviderName);
+  const order = [...new Set(requested)];
+  return new GunmarProviderRouter(order.map((name) => providers.get(name)).filter((provider): provider is AIProvider => Boolean(provider)));
+}
+
+export function getProviderStatuses() {
+  return createProviderRouter().providerStatuses;
+}
+
+class MockProvider implements AIProvider {
+  readonly name = "openrouter" as const;
+  readonly model = "mock";
+  readonly configured = true;
+
+  getStatus(): ProviderStatus {
+    return { configured: true, status: "available" };
+  }
+
+  async streamReply(input: ChatInput): Promise<AIStreamResult> {
+    return {
+      stream: streamText(`I’m Gunmar. I received: “${input.message}”\n\nConnect a cloud AI provider to enable full responses.`),
+      provider: this.name,
+      model: this.model,
+      latencyMs: 0
+    };
+  }
+}
+
+function isProviderName(value: string | undefined): value is AIProviderName {
+  return Boolean(value && providerNames.has(value as AIProviderName));
+}
+
+function setCooldown(provider: AIProviderName, status: AIProviderStatus) {
+  cooldowns.set(provider, { status, until: Date.now() + (status === "rate_limited" ? 60_000 : 15_000) });
+}
+
+function clearCooldown(provider: AIProviderName) {
+  cooldowns.delete(provider);
+}
 
 function streamText(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream({
@@ -56,106 +285,10 @@ function streamText(text: string): ReadableStream<Uint8Array> {
   });
 }
 
-class ConfiguredProvider implements AIProvider {
-  async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
-    const endpoint = process.env.AI_PROVIDER_ENDPOINT;
-    const apiKey = process.env.AI_PROVIDER_API_KEY;
-    const provider = process.env.AI_PROVIDER_NAME ?? "cloud";
-    const model = process.env.AI_MODEL;
-    const timeoutMs = Number(process.env.AI_PROVIDER_TIMEOUT_MS ?? 30_000);
-
-    if (!endpoint || !apiKey || !model) {
-      throw new AIProviderError(
-        "AI provider is not configured. Set AI_PROVIDER_ENDPOINT, AI_PROVIDER_API_KEY, and AI_MODEL.",
-        "configuration"
-      );
-    }
-
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      const timeout = new AbortController();
-      const timer = setTimeout(() => timeout.abort(), timeoutMs);
-      const signal = options?.signal
-        ? AbortSignal.any([options.signal, timeout.signal])
-        : timeout.signal;
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            accept: "text/event-stream, text/plain",
-            authorization: `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model,
-            stream: true,
-            messages: input.messages ?? [{ role: "user", content: input.message }]
-          }),
-          signal
-        });
-
-        if (response.ok && response.body) {
-          const contentType = response.headers.get("content-type") ?? "";
-          return {
-            stream: contentType.includes("text/event-stream")
-              ? parseSseTextStream(response.body)
-              : response.body,
-            provider,
-            model,
-            usage: readUsageHeaders(response.headers)
-          };
-        }
-
-        const retryable = response.status === 429 || response.status >= 500;
-        if (!retryable || attempt === 3) {
-          throw new AIProviderError(
-            `AI provider request failed with status ${response.status}.`,
-            response.status === 429 ? "rate_limit" : "provider",
-            retryable,
-            response.status
-          );
-        }
-        await delay(backoffMs(attempt));
-      } catch (error) {
-        if (error instanceof AIProviderError) throw error;
-        if (options?.signal?.aborted) throw error;
-        if (timeout.signal.aborted) {
-          if (attempt === 3) throw new AIProviderError("AI provider request timed out.", "timeout", true);
-          await delay(backoffMs(attempt));
-          continue;
-        }
-        if (attempt === 3) throw new AIProviderError("Unable to reach the AI provider.", "provider", true);
-        await delay(backoffMs(attempt));
-      } finally {
-        clearTimeout(timer);
-      }
-    }
-
-    throw new AIProviderError("AI provider request failed.", "provider", true);
-  }
-}
-
-class MockProvider implements AIProvider {
-  async streamReply(input: ChatInput): Promise<AIStreamResult> {
-    return {
-      stream: streamText(`I’m Gunmar. I received: “${input.message}”\n\nConnect a cloud AI provider to enable full responses.`),
-      provider: "mock",
-      model: "mock"
-    };
-  }
-}
-
-export function getAIProvider(): AIProvider {
-  return process.env.AI_PROVIDER === "mock"
-    ? new MockProvider()
-    : new ConfiguredProvider();
-}
-
 function parseSseTextStream(body: ReadableStream<Uint8Array>) {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
       const { done, value } = await reader.read();
@@ -164,7 +297,6 @@ function parseSseTextStream(body: ReadableStream<Uint8Array>) {
         controller.close();
         return;
       }
-
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split(/\r?\n\r?\n/);
       buffer = events.pop() ?? "";
@@ -177,42 +309,22 @@ function parseSseTextStream(body: ReadableStream<Uint8Array>) {
 }
 
 function emitSseData(event: string, controller: ReadableStreamDefaultController<Uint8Array>) {
-  const data = event
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trim())
-    .join("");
+  const data = event.split(/\r?\n/).filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).join("");
   if (!data || data === "[DONE]") return;
-
   try {
     const payload: unknown = JSON.parse(data);
-    const text = extractText(payload);
+    const choices: unknown[] = payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).choices)
+      ? (payload as Record<string, unknown>).choices as unknown[]
+      : [];
+    const choice = choices[0];
+    const delta = choice && typeof choice === "object" ? (choice as Record<string, unknown>).delta : undefined;
+    const text = delta && typeof delta === "object" && typeof (delta as Record<string, unknown>).content === "string"
+      ? (delta as Record<string, string>).content
+      : "";
     if (text) controller.enqueue(encoder.encode(text));
   } catch {
     controller.enqueue(encoder.encode(data));
   }
-}
-
-function extractText(payload: unknown) {
-  if (!payload || typeof payload !== "object") return "";
-  const record = payload as Record<string, unknown>;
-  const choices = Array.isArray(record.choices) ? record.choices : [];
-  const choice = choices[0];
-  if (!choice || typeof choice !== "object") return "";
-  const choiceRecord = choice as Record<string, unknown>;
-  const delta = choiceRecord.delta;
-  if (delta && typeof delta === "object" && typeof (delta as Record<string, unknown>).content === "string") {
-    return (delta as Record<string, string>).content;
-  }
-  return typeof choiceRecord.text === "string" ? choiceRecord.text : "";
-}
-
-function backoffMs(attempt: number) {
-  return Math.min(1_000 * 2 ** (attempt - 1), 8_000);
-}
-
-function delay(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 function readUsageHeaders(headers: Headers): AIUsage | undefined {

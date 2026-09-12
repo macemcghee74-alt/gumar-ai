@@ -518,27 +518,45 @@ export type Database = {
         Row: {
           cost: number
           created_at: string
+          input_tokens: number | null
           id: string
+          latency_ms: number | null
+          model: string | null
           operation: string
+          output_tokens: number | null
           provider: string
+          request_status: string
+          total_tokens: number | null
           units: number
           user_id: string | null
         }
         Insert: {
           cost?: number
           created_at?: string
+          input_tokens?: number | null
           id?: string
+          latency_ms?: number | null
+          model?: string | null
           operation: string
+          output_tokens?: number | null
           provider: string
+          request_status?: string
+          total_tokens?: number | null
           units?: number
           user_id?: string | null
         }
         Update: {
           cost?: number
           created_at?: string
+          input_tokens?: number | null
           id?: string
+          latency_ms?: number | null
+          model?: string | null
           operation?: string
+          output_tokens?: number | null
           provider?: string
+          request_status?: string
+          total_tokens?: number | null
           units?: number
           user_id?: string | null
         }
@@ -943,4 +961,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

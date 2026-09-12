@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Conversation = { id: string; title: string; updated_at: string };
+type ProviderStatus = { configured: boolean; status: "available" | "missing_key" | "rate_limited" | "temporarily_failed" | "disabled" };
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -13,6 +14,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [conversationId, setConversationId] = useState<string>();
   const [signedIn, setSignedIn] = useState(false);
+  const [providerStatuses, setProviderStatuses] = useState<Record<string, ProviderStatus>>({});
 
   useEffect(() => {
     const client = getSupabaseBrowserClient();
@@ -32,12 +34,26 @@ export default function Home() {
       .then((data: { conversations?: Conversation[] } | null) => setConversations(data?.conversations ?? []));
   }, [signedIn]);
 
+  useEffect(() => {
+    void fetch("/api/providers/status")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: Record<string, ProviderStatus> | null) => setProviderStatuses(data ?? {}));
+  }, []);
+
   async function selectConversation(id: string) {
     const response = await fetch(`/api/conversations/${id}`);
     if (!response.ok) return;
     const data = await response.json() as { messages: Message[] };
     setConversationId(id);
     setMessages(data.messages);
+  }
+
+  function formatProviderStatus(status?: ProviderStatus) {
+    if (!status || status.status === "missing_key") return "Missing";
+    if (status.status === "rate_limited") return "Rate limited";
+    if (status.status === "temporarily_failed") return "Temporarily unavailable";
+    if (status.status === "disabled") return "Disabled";
+    return "Connected";
   }
 
   function startConversation() {
@@ -86,6 +102,7 @@ export default function Home() {
         <p className="eyebrow">PERSONAL AI / 01</p>
         <nav><button className="active" onClick={startConversation}>New conversation</button><a className="auth-link" href="/auth">{signedIn ? "Account" : "Sign in"}</a></nav>
         {signedIn && <div className="history"><p className="eyebrow">HISTORY</p>{conversations.length === 0 && <small>No saved threads yet.</small>}{conversations.map((conversation) => <button key={conversation.id} className={conversation.id === conversationId ? "selected" : ""} onClick={() => void selectConversation(conversation.id)}>{conversation.title}</button>)}</div>}
+        <div className="provider-status"><p className="eyebrow">CLOUD PROVIDERS</p>{(["cerebras", "groq", "openrouter"] as const).map((provider) => <div key={provider}><span>{provider}</span><small>{formatProviderStatus(providerStatuses[provider])}</small></div>)}</div>
         <div className="status"><span className="dot" />Cloud-ready foundation</div>
       </aside>
       <section className="workspace">

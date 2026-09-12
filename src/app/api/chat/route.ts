@@ -83,6 +83,20 @@ export async function POST(request: Request) {
             if (error) console.error("Unable to persist assistant response.", error);
             const { error: conversationError } = await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userId);
             if (conversationError) console.error("Unable to update conversation timestamp.", conversationError);
+            const { error: usageError } = await supabase.from("provider_usage").insert({
+              user_id: userId,
+              provider: result.provider,
+              model: result.model,
+              input_tokens: result.usage?.inputTokens ?? null,
+              output_tokens: result.usage?.outputTokens ?? null,
+              total_tokens: result.usage?.totalTokens ?? null,
+              latency_ms: result.latencyMs,
+              request_status: "completed",
+              operation: "chat",
+              units: result.usage?.totalTokens ?? 0,
+              cost: 0
+            });
+            if (usageError) console.error("Unable to persist provider usage.", usageError);
           }
           controller.close();
           return;

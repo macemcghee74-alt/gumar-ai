@@ -20,7 +20,9 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Reviewed Gunmar SQL migration and install artifact | VERIFIED |
 | Live Gunmar Supabase migration, RLS QA, and generated types | VERIFIED |
 | Conversation sidebar/history persistence | VERIFIED (implemented and typechecked) |
-| Provider-agnostic cloud streaming boundary with SSE normalization, retries/timeouts | IMPLEMENTED BUT EXTERNALLY BLOCKED (provider credentials) |
+| Cerebras/Groq/OpenRouter cloud router with ordered fallback, cooldown health, and SSE streaming | IMPLEMENTED BUT EXTERNALLY BLOCKED (provider credentials) |
+| Safe provider status endpoint and control-center status display | VERIFIED (no secret exposure) |
+| Safe provider usage metadata persistence | VERIFIED (live migration and typed schema) |
 | Supabase identity/conversation/message/memory schema | VERIFIED |
 | Durable original Gunmar identity state and read API | VERIFIED |
 | Authentication and durable message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED (live email/provider credentials) |
@@ -29,7 +31,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Semantic memory extraction/retrieval | IMPLEMENTED BUT EXTERNALLY BLOCKED (embedding/provider orchestration) |
 | Personality, relationships, journal, autonomy, tools | NOT IMPLEMENTED |
 | Vision, image generation, voice, web research | NOT IMPLEMENTED |
-| Tests and production deployment | NOT IMPLEMENTED |
+| Lint, typecheck, and production build | VERIFIED |
+| Live cloud-provider production smoke tests | IMPLEMENTED BUT EXTERNALLY BLOCKED (Vercel provider credentials) |
 
 ## Verification
 
@@ -39,6 +42,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - Live Supabase verification used only project `spzedizgazoyfovzdgjb`; Mort and Loop were not accessed.
 - Cloud AI, email delivery, Vercel, and multimodal/training providers remain externally gated; no success was faked.
 - Provider configuration fails closed, with bounded timeout/retry/rate-limit handling.
+- Provider routing is Cerebras → Groq → OpenRouter; OpenRouter defaults to `openrouter/free`, and no unsupported provider is referenced.
 - Auth callback redirects are constrained to same-origin relative paths and chat requests have bounded body/rate limits.
 - See `docs/GUNMAR_EXTERNAL_GATES.md` for the current gate list.
 
