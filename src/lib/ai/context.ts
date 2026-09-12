@@ -53,7 +53,7 @@ function selectRelevantMemories(
       const recency = Math.max(0, 1 - (Date.now() - Date.parse(memory.created_at)) / 31_536_000_000);
       return { memory, score: overlap * 0.5 + memory.importance * 0.3 + memory.confidence * 0.15 + recency * 0.05 };
     })
-    .filter(({ score }) => score >= 0.3)
+    .filter(({ score, memory }) => score >= 0.3 && query.toLowerCase().split(/\W+/).some((term) => term.length >= 3 && memory.content.toLowerCase().includes(term)))
     .sort((left, right) => right.score - left.score)
     .slice(0, 8)
     .map(({ memory }) => memory);

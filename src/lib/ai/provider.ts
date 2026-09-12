@@ -71,6 +71,7 @@ export interface AIProvider {
   readonly capabilities: ProviderCapabilities;
   getStatus(): ProviderStatus;
   streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult>;
+  streamTask(input: BrainRequest, options?: { signal?: AbortSignal }): Promise<AIStreamResult>;
 }
 
 type ProviderDefinition = {
@@ -118,6 +119,7 @@ export class OpenAICompatibleProvider implements AIProvider {
     if (!this.configured) {
       throw new AIProviderError(`${this.name} is not configured.`, "configuration", false, undefined, this.name);
     }
+
     const cooldown = cooldowns.get(this.name);
     if (cooldown && cooldown.until > Date.now()) {
       throw new AIProviderError(`${this.name} is temporarily unavailable.`, cooldown.status === "rate_limited" ? "rate_limit" : "provider", true, undefined, this.name);
@@ -175,7 +177,11 @@ export class OpenAICompatibleProvider implements AIProvider {
       clearTimeout(timer);
     }
   }
-}
+
+    streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
+      return this.streamReply(input, options);
+    }
+  }
 
 export class CerebrasProvider extends OpenAICompatibleProvider {
   constructor() {
@@ -240,6 +246,10 @@ export class GunmarProviderRouter implements AIProvider {
     return this.streamFromProviders(this.providers, input, options);
   }
 
+  streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
+    return this.streamReply(input, options);
+  }
+
   protected async streamFromProviders(providers: AIProvider[], input: ChatInput, options?: { signal?: AbortSignal }) {
     const failures: AIProviderError[] = [];
     for (const provider of providers) {
@@ -283,9 +293,9 @@ export function createProviderRouter() {
     ["groq", new GroqProvider()],
     ["openrouter", new OpenRouterProvider()]
   ]);
-  const requested = process.env.GUNMAR_PROVIDER_ORDER?.split(",").map((value) => value.trim().toLowerCase()).filter(isProviderName)
-    ?? [process.env.GUNMAR_PRIMARY_PROVIDER?.toLowerCase(), "groq", "openrouter"].filter(isProviderName);
-  const order = [...new Set(requested)];
+  const requested = process.env.GUNMAR_PROVIDER_ORDER?.split(",").map((value) => value.trim().toLowerCase()).filter(isProviderName) ?? [];
+  const fallback = [process.env.GUNMAR_PRIMARY_PROVIDER?.trim().toLowerCase(), "cerebras", "groq", "openrouter"].filter(isProviderName);
+  const order = [...new Set(requested.length > 0 ? requested : fallback)];
   return new GunmarBrainRouter(order.map((name) => providers.get(name)).filter((provider): provider is AIProvider => Boolean(provider)));
 }
 
@@ -309,13 +319,18 @@ class MockProvider implements AIProvider {
     return { configured: true, status: "available" };
   }
 
-  async streamReply(input: ChatInput): Promise<AIStreamResult> {
+  async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
+    if (options?.signal?.aborted) throw new DOMException("The request was aborted.", "AbortError");
     return {
       stream: streamText(`I’m Gunmar. I received: “${input.message}”\n\nConnect a cloud AI provider to enable full responses.`),
       provider: this.name,
       model: this.model,
       latencyMs: 0
     };
+  }
+
+  streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
+    return this.streamReply(input, options);
   }
 }
 
@@ -335,6 +350,11 @@ function setCooldown(provider: AIProviderName, status: AIProviderStatus) {
 
 function clearCooldown(provider: AIProviderName) {
   cooldowns.delete(provider);
+}
+
+export function resetProviderCooldowns(provider?: AIProviderName) {
+  if (provider) cooldowns.delete(provider);
+  else cooldowns.clear();
 }
 
 function streamText(text: string): ReadableStream<Uint8Array> {
@@ -361,7 +381,13 @@ function parseSseTextStream(body: ReadableStream<Uint8Array>) {
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split(/\r?\n\r?\n/);
       buffer = events.pop() ?? "";
-      for (const event of events) emitSseData(event, controller);
+      for (const event of events) {
+        if (emitSseData(event, controller)) {
+          controller.close();
+          await reader.cancel();
+          return;
+        }
+      }
     },
     async cancel(reason) {
       await reader.cancel(reason);
@@ -371,7 +397,8 @@ function parseSseTextStream(body: ReadableStream<Uint8Array>) {
 
 function emitSseData(event: string, controller: ReadableStreamDefaultController<Uint8Array>) {
   const data = event.split(/\r?\n/).filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).join("");
-  if (!data || data === "[DONE]") return;
+  if (!data) return false;
+  if (data === "[DONE]") return true;
   try {
     const payload: unknown = JSON.parse(data);
     const choices: unknown[] = payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).choices)
@@ -386,15 +413,18 @@ function emitSseData(event: string, controller: ReadableStreamDefaultController<
   } catch {
     controller.enqueue(encoder.encode(data));
   }
+  return false;
 }
 
 function readUsageHeaders(headers: Headers): AIUsage | undefined {
-  const inputTokens = Number(headers.get("x-input-tokens"));
-  const outputTokens = Number(headers.get("x-output-tokens"));
-  if (!Number.isFinite(inputTokens) && !Number.isFinite(outputTokens)) return undefined;
+  const inputHeader = headers.get("x-input-tokens");
+  const outputHeader = headers.get("x-output-tokens");
+  const inputTokens = inputHeader === null ? undefined : Number(inputHeader);
+  const outputTokens = outputHeader === null ? undefined : Number(outputHeader);
+  if (inputTokens === undefined && outputTokens === undefined) return undefined;
   return {
-    inputTokens: Number.isFinite(inputTokens) ? inputTokens : undefined,
-    outputTokens: Number.isFinite(outputTokens) ? outputTokens : undefined,
-    totalTokens: Number.isFinite(inputTokens) && Number.isFinite(outputTokens) ? inputTokens + outputTokens : undefined
+    inputTokens: inputTokens !== undefined && Number.isFinite(inputTokens) ? inputTokens : undefined,
+    outputTokens: outputTokens !== undefined && Number.isFinite(outputTokens) ? outputTokens : undefined,
+    totalTokens: inputTokens !== undefined && outputTokens !== undefined && Number.isFinite(inputTokens) && Number.isFinite(outputTokens) ? inputTokens + outputTokens : undefined
   };
 }

@@ -65,17 +65,17 @@ export async function POST(request: Request) {
         .eq("conversation_id", conversationId)
         .eq("user_id", userId)
         .in("role", ["user", "assistant"])
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(50);
       if (historyError) throw new Error("Unable to load conversation context.");
       messages = (history ?? []).map((message) => ({
         role: message.role as "user" | "assistant",
         content: message.content
-      }));
+      })).reverse();
       messages = await composeGunmarContext(supabase, userId, messages);
     }
 
-    const result = await getAIProvider().streamReply({ ...parsed.data, messages }, { signal: request.signal });
+    const result = await getAIProvider().streamTask({ ...parsed.data, messages, taskType: "conversation" }, { signal: request.signal });
     const stream = result.stream;
     const reader = stream.getReader();
     const encoder = new TextEncoder();

@@ -43,7 +43,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Bounded relationship interaction continuity | IMPLEMENTED BUT EXTERNALLY BLOCKED (full reflection/consolidation scheduler) |
 | Bounded personality evolution, journal consolidation, autonomy, tools | NOT IMPLEMENTED |
 | Vision, image generation, voice, web research | NOT IMPLEMENTED |
-| Lint, typecheck, and production build | VERIFIED |
+| Lint, typecheck, regression tests, and production build | VERIFIED |
 | Live cloud-provider production smoke tests | IMPLEMENTED BUT EXTERNALLY BLOCKED (Vercel provider credentials) |
 
 ## Verification
@@ -57,6 +57,8 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - Provider routing is Cerebras → Groq → OpenRouter; OpenRouter defaults to `openrouter/free`, and no unsupported provider is referenced.
 - Chat context now composes durable Gunmar identity, user-specific personality/relationship state, and relevant active memories before inference.
 - Approved training candidates can be reviewed and exported into hashed, versioned dataset records; no candidate is automatically promoted or sent to a training service.
+- Provider streaming now terminates on `[DONE]`, preserves unknown usage as null/undefined, and supports resettable cooldown state for operational tests.
+- Chat context loads the newest bounded message window and restores chronological order before composing Gunmar context.
 - Consolidation deduplicates active memories, records audit metadata, and applies bounded relationship/personality updates without hidden chain-of-thought persistence.
 - Live provider smoke tests are externally blocked because provider secrets are not available in the local agent environment.
 - Multimodal provider execution, voice transcription/synthesis, and image generation remain externally blocked; the private storage and safety boundaries are in place.
