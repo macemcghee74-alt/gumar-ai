@@ -37,6 +37,8 @@ Private `uploads`, `generated-images`, and `audio` buckets are live with per-use
 
 Web research has an SSRF-safe fetch boundary with private-IP blocking, redirect rejection, content-size/MIME limits, timeouts, and explicit untrusted-content labeling. A search-provider credential is not configured, so no external search integration is claimed.
 
+Model lifecycle storage and manual promotion/rollback controls are implemented. Actual training jobs, model artifacts, and evaluation execution remain blocked until a training provider is explicitly selected and configured.
+
 Current implementation work completed behind those gates:
 
 - provider-agnostic cloud streaming boundary with timeout, cancellation, bounded fallback, cooldown health, usage metadata, and typed errors;

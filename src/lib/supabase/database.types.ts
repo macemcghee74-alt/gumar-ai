@@ -415,27 +415,36 @@ export type Database = {
       }
       model_evaluations: {
         Row: {
+          category: string | null
           created_at: string
           id: string
+          metadata: Json
           model_version_id: string
           notes: string | null
           score: number
+          suite: string
           user_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
+          metadata?: Json
           model_version_id: string
           notes?: string | null
           score: number
+          suite?: string
           user_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
+          metadata?: Json
           model_version_id?: string
           notes?: string | null
           score?: number
+          suite?: string
           user_id?: string | null
         }
         Relationships: [
@@ -450,28 +459,46 @@ export type Database = {
       }
       model_versions: {
         Row: {
-          created_at: string
-          id: string
+            base_model: string
+            created_at: string
+            dataset_version_id: string | null
+            id: string
           model_name: string
-          provider: string
-          status: string
-          version: string
-        }
-        Insert: {
-          created_at?: string
+            promoted_at: string | null
+            provider: string
+            rollback_target: string | null
+            status: string
+            training_job_id: string | null
+            training_provider: string | null
+            version: string
+          }
+          Insert: {
+            base_model: string
+            created_at?: string
+            dataset_version_id?: string | null
           id?: string
-          model_name: string
-          provider: string
-          status: string
-          version: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          model_name?: string
-          provider?: string
-          status?: string
-          version?: string
+            model_name: string
+            promoted_at?: string | null
+            provider: string
+            rollback_target?: string | null
+            status: string
+            training_job_id?: string | null
+            training_provider?: string | null
+            version: string
+          }
+          Update: {
+            base_model?: string
+            created_at?: string
+            dataset_version_id?: string | null
+            id?: string
+            model_name?: string
+            promoted_at?: string | null
+            provider?: string
+            rollback_target?: string | null
+            status?: string
+            training_job_id?: string | null
+            training_provider?: string | null
+            version?: string
         }
         Relationships: []
       }
