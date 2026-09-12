@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Test and browser artifacts
+playwright-report/
+test-results/
+
+# Temporary provider artifacts and local databases
+*.sqlite
+*.sqlite3
+supabase/.temp/
