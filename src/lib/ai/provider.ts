@@ -125,7 +125,7 @@ export class OpenAICompatibleProvider implements AIProvider {
       throw new AIProviderError(`${this.name} is temporarily unavailable.`, cooldown.status === "rate_limited" ? "rate_limit" : "provider", true, undefined, this.name);
     }
 
-    const timeoutMs = Number(process.env.GUNMAR_PROVIDER_TIMEOUT_MS ?? 30_000);
+    const timeoutMs = Number(process.env.GUNMAR_PROVIDER_TIMEOUT_MS ?? 8_000);
     const startedAt = Date.now();
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), timeoutMs);
@@ -274,7 +274,7 @@ export class GunmarBrainRouter extends GunmarProviderRouter {
       ? ["groq", "cerebras", "openrouter"]
       : taskType === "research_synthesis" || taskType === "evaluation"
         ? ["openrouter", "cerebras", "groq"]
-        : ["cerebras", "groq", "openrouter"];
+        : ["groq", "cerebras", "openrouter"];
     const ordered = [...preferredOrder.map((name) => this.providers.find((provider) => provider.name === name)).filter((provider): provider is AIProvider => Boolean(provider)), ...this.providers]
       .filter((provider, index, all) => all.indexOf(provider) === index)
       .filter((provider) => supportsRequiredCapabilities(provider, input.requiredCapabilities));
@@ -297,7 +297,7 @@ export function createProviderRouter() {
     ["openrouter", new OpenRouterProvider()]
   ]);
   const requested = process.env.GUNMAR_PROVIDER_ORDER?.split(",").map((value) => value.trim().toLowerCase()).filter(isProviderName) ?? [];
-  const fallback = [process.env.GUNMAR_PRIMARY_PROVIDER?.trim().toLowerCase(), "cerebras", "groq", "openrouter"].filter(isProviderName);
+  const fallback = [process.env.GUNMAR_PRIMARY_PROVIDER?.trim().toLowerCase(), "groq", "cerebras", "openrouter"].filter(isProviderName);
   const order = [...new Set(requested.length > 0 ? requested : fallback)];
   return new GunmarBrainRouter(order.map((name) => providers.get(name)).filter((provider): provider is AIProvider => Boolean(provider)));
 }

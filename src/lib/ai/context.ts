@@ -23,7 +23,10 @@ export async function composeGunmarContext(
   ]);
 
   const query = messages[messages.length - 1]?.content ?? "";
-  const semanticMemories = await retrieveSemanticMemories(supabase, query);
+  const semanticMemories = await Promise.race([
+    retrieveSemanticMemories(supabase, query),
+    new Promise<MemoryContext[]>((resolve) => setTimeout(() => resolve([]), 1_000))
+  ]);
   const relevantMemories = semanticMemories.length > 0 ? semanticMemories : selectRelevantMemories(memories ?? [], query);
   const principles = readJsonStringArray(identity?.behavioral_principles, identityDefaults.principles);
   const preferences = readJsonRecord(identity?.stable_preferences);
@@ -47,20 +50,24 @@ export async function composeGunmarContext(
 async function retrieveSemanticMemories(supabase: ServerSupabase, query: string): Promise<MemoryContext[]> {
   const provider = getEmbeddingProvider();
   if (!provider.configured || !query.trim()) return [];
-  const embedding = await provider.embed(query);
-  const { data, error } = await supabase.rpc("search_memories", {
-    query_embedding: `[${embedding.vector.join(",")}]`,
-    match_count: 8
-  });
-  if (error) throw new Error("Unable to retrieve semantic memories.");
-  const rows = (data ?? []) as Array<Pick<MemoryContext, "content" | "memory_type" | "importance" | "confidence">>;
-  return rows.map((memory) => ({
-    content: memory.content,
-    memory_type: memory.memory_type,
-    importance: memory.importance,
-    confidence: memory.confidence,
-    created_at: new Date().toISOString()
-  }));
+  try {
+    const embedding = await provider.embed(query);
+    const { data, error } = await supabase.rpc("search_memories", {
+      query_embedding: `[${embedding.vector.join(",")}]`,
+      match_count: 8
+    });
+    if (error) return [];
+    const rows = (data ?? []) as Array<Pick<MemoryContext, "content" | "memory_type" | "importance" | "confidence">>;
+    return rows.map((memory) => ({
+      content: memory.content,
+      memory_type: memory.memory_type,
+      importance: memory.importance,
+      confidence: memory.confidence,
+      created_at: new Date().toISOString()
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function selectRelevantMemories(
