@@ -37,3 +37,4 @@ create policy coding_runs_owner on public.coding_runs for all to authenticated u
 create policy coding_steps_owner on public.coding_steps for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create index if not exists coding_runs_user_created_idx on public.coding_runs (user_id, created_at desc);
 create index if not exists coding_steps_run_idx on public.coding_steps (run_id, step_number);
+create index if not exists coding_steps_user_idx on public.coding_steps (user_id);
