@@ -26,6 +26,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Authenticated distributed chat rate limiting | VERIFIED (live Supabase RPC and RLS-protected counter table) |
 | Real embedding provider boundary, metadata, and bounded backfill | IMPLEMENTED BUT EXTERNALLY BLOCKED (no credential or currently catalog-listed verified free model) |
 | Bounded coding-agent core and safety policy | VERIFIED (local orchestration, path containment, secret blocking, budgets, cancellation) |
+| Typed bounded repository coding tools and evaluation report | CODE COMPLETE — EXTERNALLY BLOCKED (deployment workspace and provider execution) |
 | Provider-independent Gunmar context composition with identity, personality, relationship, and relevant memory | VERIFIED (implemented and typechecked) |
 | Conservative conversation memory learning with deduplication and source linkage | VERIFIED (implemented and typechecked) |
 | Task-aware GunmarBrainRouter and provider capability metadata | VERIFIED (implemented and typechecked) |

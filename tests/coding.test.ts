@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CodingOrchestrator } from "@/lib/coding/orchestrator";
 import { authorizeCodingTool, resolveWorkspacePath } from "@/lib/coding/policy";
 import { codingTaskSchema } from "@/lib/coding/types";
+import { createRepositoryCodingTools } from "@/lib/coding/tools";
 
 describe("coding agent safety", () => {
   it("keeps tool paths inside the workspace and blocks secrets", () => {
@@ -23,5 +24,12 @@ describe("coding agent safety", () => {
     expect(run.status).toBe("completed");
     expect(run.steps).toBeLessThanOrEqual(30);
     expect(run.providerCalls).toBe(1);
+  });
+
+  it("registers only allowlisted repository verification commands", () => {
+    const names = createRepositoryCodingTools("C:\\workspace").map((tool) => tool.name);
+    expect(names).toContain("read_file");
+    expect(names).toContain("run_tests");
+    expect(names).not.toContain("safe_command");
   });
 });
