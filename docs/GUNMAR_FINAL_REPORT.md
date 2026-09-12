@@ -30,6 +30,9 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Bounded personality evolution with auditable history | VERIFIED (bounded service and cooldown) |
 | Relationship continuity with conservative interaction updates | VERIFIED (bounded service and RLS-backed persistence) |
 | Journal API and idempotent consolidation boundary | VERIFIED (implemented and typechecked) |
+| Private uploads/audio storage with ownership policies and MIME/size validation | VERIFIED (live buckets and policies) |
+| SSRF-safe web research fetch boundary with untrusted-content labeling | VERIFIED (implemented and typechecked) |
+| Typed tool registry with risk and approval metadata | VERIFIED (implemented and typechecked) |
 | Supabase identity/conversation/message/memory schema | VERIFIED |
 | Durable original Gunmar identity state and read API | VERIFIED |
 | Authentication and durable message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED (live email/provider credentials) |
@@ -55,6 +58,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 - Approved training candidates can be reviewed and exported into hashed, versioned dataset records; no candidate is automatically promoted or sent to a training service.
 - Consolidation deduplicates active memories, records audit metadata, and applies bounded relationship/personality updates without hidden chain-of-thought persistence.
 - Live provider smoke tests are externally blocked because provider secrets are not available in the local agent environment.
+- Multimodal provider execution, voice transcription/synthesis, and image generation remain externally blocked; the private storage and safety boundaries are in place.
 - Auth callback redirects are constrained to same-origin relative paths and chat requests have bounded body/rate limits.
 - See `docs/GUNMAR_EXTERNAL_GATES.md` for the current gate list.
 

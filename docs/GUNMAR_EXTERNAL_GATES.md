@@ -31,6 +31,12 @@ The local environment does not contain `CEREBRAS_API_KEY`, `GROQ_API_KEY`, or `O
 
 The application remains fail-closed when those server-side secrets are unavailable. Required deployment variables are listed in `.env.example`.
 
+## Multimodal and research gates
+
+Private `uploads`, `generated-images`, and `audio` buckets are live with per-user object policies. Upload validation is limited to approved image/audio MIME types and 10 MB. Vision, image generation, speech providers, and browser microphone verification remain blocked until an explicitly selected provider is configured.
+
+Web research has an SSRF-safe fetch boundary with private-IP blocking, redirect rejection, content-size/MIME limits, timeouts, and explicit untrusted-content labeling. A search-provider credential is not configured, so no external search integration is claimed.
+
 Current implementation work completed behind those gates:
 
 - provider-agnostic cloud streaming boundary with timeout, cancellation, bounded fallback, cooldown health, usage metadata, and typed errors;
