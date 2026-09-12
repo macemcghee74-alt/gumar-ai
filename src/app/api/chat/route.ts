@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { AIMessage, AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
 import { composeGunmarContext } from "@/lib/ai/context";
@@ -9,18 +10,26 @@ import { readJson } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 
+function jsonError(status: number, code: string, message: string, requestId: string, extraHeaders: Record<string, string> = {}) {
+  return NextResponse.json({ error: { code, message, requestId } }, {
+    status,
+    headers: { "x-request-id": requestId, ...extraHeaders }
+  });
+}
+
 export async function POST(request: Request) {
+  const requestId = randomUUID();
   let body: unknown;
   try {
     body = await readJson(request);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid request body.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return jsonError(400, "bad_request", message, requestId);
   }
   const parsed = chatInputSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Message must be between 1 and 12,000 characters." }, { status: 400 });
+    return jsonError(400, "bad_request", "Message must be between 1 and 12,000 characters.", requestId);
   }
 
   try {
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
 
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return NextResponse.json({ error: "Sign in to save conversations." }, { status: 401 });
+      if (!user) return jsonError(401, "unauthenticated", "Sign in to save conversations.", requestId);
       userId = user.id;
       const limit = Number(process.env.GUNMAR_CHAT_RATE_LIMIT ?? 30);
       const windowSeconds = Number(process.env.GUNMAR_CHAT_RATE_WINDOW_SECONDS ?? 60);
@@ -43,15 +52,12 @@ export async function POST(request: Request) {
       if (rateError) throw new Error("Unable to verify request rate limit.");
       const rate = rateRows?.[0];
       if (!rate?.allowed) {
-        return NextResponse.json({ error: "Too many requests." }, {
-          status: 429,
-          headers: { "retry-after": String(rate?.retry_after ?? 60) }
-        });
+        return jsonError(429, "rate_limit", "Too many requests.", requestId, { "retry-after": String(rate?.retry_after ?? 60) });
       }
 
       if (conversationId) {
         const { data: conversation } = await supabase.from("conversations").select("id").eq("id", conversationId).eq("user_id", user.id).maybeSingle();
-        if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+        if (!conversation) return jsonError(404, "not_found", "Conversation not found.", requestId);
       } else {
         const { data: conversation, error } = await supabase.from("conversations").insert({ user_id: user.id }).select("id").single();
         if (error) throw new Error("Unable to create conversation.");
@@ -143,13 +149,16 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(text));
       }
     });
-    return new Response(responseStream, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-cache", ...(conversationId ? { "x-conversation-id": conversationId } : {}) } });
+    return new Response(responseStream, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-cache", "x-request-id": requestId, ...(conversationId ? { "x-conversation-id": conversationId } : {}) } });
   } catch (error) {
     if (error instanceof AIProviderError && error.code === "configuration") {
-      return NextResponse.json({ error: error.message }, { status: 503 });
+      return jsonError(503, "provider_configuration", error.message, requestId);
+    }
+    if (error instanceof AIProviderError && error.code === "rate_limit") {
+      return jsonError(429, "rate_limit", error.message, requestId);
     }
     const message = error instanceof Error ? error.message : "Unable to contact the AI provider.";
-    const status = error instanceof AIProviderError && error.code === "rate_limit" ? 429 : 503;
-    return NextResponse.json({ error: message }, { status });
+    const status = error instanceof AIProviderError && error.code === "timeout" ? 504 : 503;
+    return jsonError(status, "provider_failure", message, requestId);
   }
 }

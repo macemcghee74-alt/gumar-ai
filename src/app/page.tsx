@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { readApiError } from "@/lib/api/error";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -130,7 +131,10 @@ export default function Home() {
     setBusy(true);
     try {
       const response = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, conversationId }) });
-      if (!response.ok || !response.body) throw new Error((await response.json()).error ?? "Request failed.");
+      if (!response.ok || !response.body) {
+        const error = await readApiError(response);
+        throw new Error(error.message || "Gunmar is temporarily unable to respond.");
+      }
       const savedConversationId = response.headers.get("x-conversation-id");
       if (savedConversationId) {
         setConversationId(savedConversationId);
@@ -148,8 +152,8 @@ export default function Home() {
         setMessages((current) => current.map((item, index) => index === current.length - 1 ? { ...item, content: answer } : item));
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Something went wrong.";
-      setMessages((current) => current.map((item, index) => index === current.length - 1 ? { ...item, content: `Error: ${message}` } : item));
+      const message = error instanceof Error ? error.message : "Gunmar is temporarily unable to respond.";
+      setMessages((current) => current.map((item, index) => index === current.length - 1 ? { ...item, content: message.startsWith("Gunmar") ? message : "Gunmar is temporarily unable to respond." } : item));
     } finally {
       setBusy(false);
     }

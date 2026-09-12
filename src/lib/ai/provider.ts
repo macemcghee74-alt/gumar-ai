@@ -283,7 +283,10 @@ export class GunmarBrainRouter extends GunmarProviderRouter {
 }
 
 export function getAIProvider(): AIProvider {
-  if (process.env.AI_PROVIDER === "mock") return new MockProvider();
+  if (process.env.AI_PROVIDER === "mock") {
+    if (process.env.NODE_ENV === "production") return new FailClosedProvider();
+    return new MockProvider();
+  }
   return createProviderRouter();
 }
 
@@ -327,6 +330,33 @@ class MockProvider implements AIProvider {
       model: this.model,
       latencyMs: 0
     };
+  }
+
+  streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
+    return this.streamReply(input, options);
+  }
+}
+
+class FailClosedProvider implements AIProvider {
+  readonly name = "openrouter" as const;
+  readonly model = "fail-closed";
+  readonly configured = false;
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    structuredOutputs: false,
+    toolCalls: false,
+    modalities: ["text"],
+    taskTypes: ["conversation"]
+  };
+
+  getStatus(): ProviderStatus {
+    return { configured: false, status: "missing_key" };
+  }
+
+  async streamReply(input: ChatInput, options?: { signal?: AbortSignal }): Promise<AIStreamResult> {
+    void input;
+    void options;
+    throw new AIProviderError("No Gunmar cloud provider is configured.", "configuration", false, 503, this.name);
   }
 
   streamTask(input: BrainRequest, options?: { signal?: AbortSignal }) {
