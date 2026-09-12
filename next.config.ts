@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  env: {
+    NEXTPUBLICSUPABASEURL: process.env.NEXTPUBLICSUPABASEURL,
+    NEXTPUBLICSUPABASEPUBLISHABLEKEY: process.env.NEXTPUBLICSUPABASEPUBLISHABLEKEY
+  }
 };
 
 export default nextConfig;
