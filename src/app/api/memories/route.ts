@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createMemorySchema } from "@/lib/memory/schema";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getEmbeddingProvider } from "@/lib/embeddings/provider";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,13 @@ async function requireUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return { supabase, user: null };
   return { supabase, user: data.user };
+}
+
+async function embeddingFor(content: string) {
+  const provider = getEmbeddingProvider();
+  if (!provider.configured) return null;
+  const result = await provider.embed(content);
+  return `[${result.vector.join(",")}]`;
 }
 
 export async function GET() {
@@ -39,6 +47,7 @@ export async function POST(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   if (!user) return NextResponse.json({ error: "Sign in to save memories." }, { status: 401 });
 
+  const embedding = await embeddingFor(parsed.data.content);
   const { data, error } = await supabase
     .from("memories")
     .insert({
@@ -46,7 +55,8 @@ export async function POST(request: Request) {
       content: parsed.data.content,
       memory_type: parsed.data.memoryType,
       importance: parsed.data.importance,
-      confidence: parsed.data.confidence
+      confidence: parsed.data.confidence,
+      embedding
     })
     .select("id, content, memory_type, importance, confidence, created_at")
     .single();
@@ -81,6 +91,7 @@ export async function PATCH(request: Request) {
   if (originalError) return NextResponse.json({ error: "Unable to load memory." }, { status: 503 });
   if (!original) return NextResponse.json({ error: "Memory not found." }, { status: 404 });
 
+  const embedding = await embeddingFor(parsed.data.content);
   const { data: replacement, error: insertError } = await supabase
     .from("memories")
     .insert({
@@ -88,7 +99,8 @@ export async function PATCH(request: Request) {
       content: parsed.data.content,
       memory_type: parsed.data.memoryType,
       importance: parsed.data.importance,
-      confidence: parsed.data.confidence
+      confidence: parsed.data.confidence,
+      embedding
     })
     .select("id, content, memory_type, importance, confidence, created_at")
     .single();
@@ -111,7 +123,8 @@ export async function DELETE(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   if (!user) return NextResponse.json({ error: "Sign in to delete memories." }, { status: 401 });
 
-  const { error } = await supabase.from("memories").delete().eq("id", id).eq("user_id", user.id);
+  const query = supabase.from("memories").delete().eq("user_id", user.id);
+  const { error } = id === "all" ? await query : await query.eq("id", id);
   if (error) return NextResponse.json({ error: "Unable to delete memory." }, { status: 503 });
   return new Response(null, { status: 204 });
 }
