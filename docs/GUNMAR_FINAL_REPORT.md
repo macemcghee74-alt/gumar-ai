@@ -16,6 +16,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Validated server chat route | VERIFIED (mock provider) |
 | Supabase SSR client and authenticated message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Passwordless Supabase authentication flow | IMPLEMENTED BUT EXTERNALLY BLOCKED |
+| Authenticated memory API validation and ownership boundary | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Replaceable cloud AI boundary | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Supabase identity/conversation/message/memory schema | IMPLEMENTED BUT EXTERNALLY BLOCKED |
 | Authentication and durable message persistence | NOT IMPLEMENTED |
