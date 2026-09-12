@@ -234,7 +234,7 @@ declare
   table_name text;
 begin
   foreach table_name in array array[
-    'profiles','conversations','messages','memories','personality_traits','personality_history',
+    'gunmar_identity','profiles','conversations','messages','memories','personality_traits','personality_history',
     'relationships','relationship_events','journal_entries','learned_facts','interests','skills',
     'tool_definitions','tool_executions','autonomy_tasks','autonomy_runs','training_examples',
     'training_datasets','model_versions','model_evaluations','generated_assets','voice_sessions',
@@ -244,6 +244,7 @@ begin
   end loop;
 end $$;
 
+create policy gunmar_identity_select on public.gunmar_identity for select to authenticated using (true);
 create policy profiles_select on public.profiles for select to authenticated using (auth.uid() = id);
 create policy profiles_insert on public.profiles for insert to authenticated with check (auth.uid() = id);
 create policy profiles_update on public.profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
