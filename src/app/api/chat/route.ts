@@ -32,6 +32,12 @@ export async function POST(request: Request) {
 
       const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, user_id: user.id, role: "user", content: parsed.data.message });
       if (error) throw new Error("Unable to save message.");
+
+      if (!parsed.data.conversationId) {
+        const title = parsed.data.message.trim().slice(0, 80);
+        const { error: titleError } = await supabase.from("conversations").update({ title }).eq("id", conversationId).eq("user_id", user.id);
+        if (titleError) throw new Error("Unable to update conversation.");
+      }
     }
 
     const stream = await getAIProvider().streamReply(parsed.data);
@@ -46,6 +52,8 @@ export async function POST(request: Request) {
           if (supabase && userId && conversationId && assistantContent) {
             const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: assistantContent });
             if (error) console.error("Unable to persist assistant response.", error);
+            const { error: conversationError } = await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userId);
+            if (conversationError) console.error("Unable to update conversation timestamp.", conversationError);
           }
           controller.close();
           return;

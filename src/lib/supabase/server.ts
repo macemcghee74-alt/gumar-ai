@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "@/lib/supabase/database.types";
 
 export async function getSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -8,7 +9,9 @@ export async function getSupabaseServerClient() {
   if (!url || !key) return null;
 
   const cookieStore = await cookies();
-  return createServerClient(url, key, {
+  // @supabase/ssr 0.6.x cannot infer the generated schema with supabase-js 2.116.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createServerClient<Database, "public", any>(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

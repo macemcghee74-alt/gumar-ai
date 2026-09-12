@@ -8,6 +8,7 @@ button, textarea { font:inherit; }
 .orb { width:12px; height:12px; background:var(--accent); border-radius:50%; box-shadow:0 0 18px var(--accent); }
 .eyebrow { color:var(--muted); font-size:10px; letter-spacing:.18em; margin:0 0 12px; }
 nav { display:flex; flex-direction:column; gap:8px; } nav button { color:var(--muted); background:none; border:0; text-align:left; padding:12px; cursor:pointer; border-radius:7px; } nav button.active { color:var(--text); background:var(--panel); } nav button:disabled { cursor:not-allowed; opacity:.55; } small { float:right; color:#5d6270; }
+.history { display:flex; flex-direction:column; gap:5px; overflow:auto; max-height:38vh; } .history button { color:var(--muted); background:none; border:0; border-radius:6px; cursor:pointer; font-size:12px; padding:9px 10px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .history button.selected, .history button:hover { color:var(--text); background:var(--panel); }
 .auth-link { color:var(--accent); font-size:12px; padding:12px; text-decoration:none; }
 .status { margin-top:auto; color:var(--muted); font-size:11px; } .dot { display:inline-block; width:7px; height:7px; background:var(--accent); border-radius:50%; margin-right:8px; }
 .workspace { max-width:980px; width:100%; margin:auto; padding:50px 7vw 28px; display:flex; flex-direction:column; min-height:100vh; }

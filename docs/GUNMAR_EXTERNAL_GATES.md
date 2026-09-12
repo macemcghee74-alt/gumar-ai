@@ -2,15 +2,18 @@
 
 ## Supabase MCP
 
-The repository MCP configuration is scoped to project `spzedizgazoyfovzdgjb`. The prior URL contained `read_only=true`; that flag was removed without changing the project reference. However, the Supabase MCP server is not exposed as a callable tool in the current agent session, so live operations have not been attempted and no migration was applied remotely.
+The repository MCP configuration is scoped to project `spzedizgazoyfovzdgjb`. The live project URL is `https://spzedizgazoyfovzdgjb.supabase.co`.
 
-Required follow-up in a VS Code session with the `supabase` MCP connected:
+Verified through the authorized Supabase MCP:
 
-- inspect project URL, extensions, migrations, and tables;
-- apply the reviewed migration;
-- verify RLS, grants, constraints, indexes, and pgvector remotely;
-- generate live database types;
-- run authenticated isolation checks.
+- initial schema and two hardening migrations applied;
+- pgvector installed and the Gunmar tables, columns, foreign keys, indexes, grants, RLS, and policies inspected;
+- live TypeScript database types generated into `src/lib/supabase/database.types.ts`;
+- security and performance advisors rerun after hardening;
+- authenticated isolation QA passed for two synthetic users and anon access;
+- synthetic QA users and rows removed.
+
+The remaining advisor findings are the expected `vector` extension-in-public warning and unused-index informational findings from an empty development database. The vector extension remains in `public` because the schema uses its type and operator class directly.
 
 Mort (`rakjydmgwwgtdislanbt`) and Loop (`zqalnvfwxmfrnyjcuehq`) were not accessed or modified.
 
