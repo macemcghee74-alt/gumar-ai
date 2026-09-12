@@ -176,25 +176,34 @@ export type Database = {
       }
       gunmar_identity: {
         Row: {
+          behavioral_principles: Json
           created_at: string
           current_model_version: string | null
           id: string
           identity_version: number
+          long_term_goals: Json
           name: string
+          stable_preferences: Json
         }
         Insert: {
+          behavioral_principles?: Json
           created_at?: string
           current_model_version?: string | null
           id?: string
           identity_version?: number
+          long_term_goals?: Json
           name?: string
+          stable_preferences?: Json
         }
         Update: {
+          behavioral_principles?: Json
           created_at?: string
           current_model_version?: string | null
           id?: string
           identity_version?: number
+          long_term_goals?: Json
           name?: string
+          stable_preferences?: Json
         }
         Relationships: []
       }
@@ -934,3 +943,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

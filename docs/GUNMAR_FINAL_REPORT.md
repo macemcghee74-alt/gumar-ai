@@ -22,6 +22,7 @@ Next.js App Router runs the UI and server route boundary. Provider credentials a
 | Conversation sidebar/history persistence | VERIFIED (implemented and typechecked) |
 | Provider-agnostic cloud streaming boundary with retries/timeouts | IMPLEMENTED BUT EXTERNALLY BLOCKED (provider credentials) |
 | Supabase identity/conversation/message/memory schema | VERIFIED |
+| Durable original Gunmar identity state and read API | VERIFIED |
 | Authentication and durable message persistence | IMPLEMENTED BUT EXTERNALLY BLOCKED (live email/provider credentials) |
 | Memory candidate extraction, scoring, deduplication, correction API | VERIFIED (deterministic foundation) |
 | pgvector hybrid memory search RPC | IMPLEMENTED BUT EXTERNALLY BLOCKED (embedding provider) |
