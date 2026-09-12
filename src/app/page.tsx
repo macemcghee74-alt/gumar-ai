@@ -44,7 +44,7 @@ export default function Home() {
       <aside className="sidebar">
         <div className="brand"><span className="orb" />GUNMAR</div>
         <p className="eyebrow">PERSONAL AI / 01</p>
-        <nav><button className="active">Conversation</button><button disabled>Memory <small>soon</small></button><button disabled>Journal <small>soon</small></button></nav>
+        <nav><button className="active">Conversation</button><button disabled>Memory <small>soon</small></button><button disabled>Journal <small>soon</small></button><a className="auth-link" href="/auth">Sign in</a></nav>
         <div className="status"><span className="dot" />Cloud-ready foundation</div>
       </aside>
       <section className="workspace">

@@ -8,6 +8,7 @@
 - Supabase migration for identity, conversations, messages, memories, indexes, and RLS.
 - Supabase SSR client boundary with cookie-safe server access.
 - Authenticated conversation/message persistence when Supabase is configured; local mock mode remains available without credentials.
+- Passwordless email authentication screen and callback route.
 - Environment variable contract and generated-artifact ignores.
 
 ## Next milestones
