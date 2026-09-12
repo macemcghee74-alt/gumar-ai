@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { AIMessage, AIProviderError, chatInputSchema, getAIProvider } from "@/lib/ai/provider";
 import { composeGunmarContext } from "@/lib/ai/context";
 import { learnFromUserMessage } from "@/lib/memory/learning";
+import { extractMemoryCandidates } from "@/lib/memory/engine";
 import { recordMeaningfulInteraction } from "@/lib/learning/state";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { readJson } from "@/lib/security/request";
@@ -125,6 +126,13 @@ export async function POST(request: Request) {
               await recordMeaningfulInteraction(supabase, userId, { summary: "Completed a conversation turn." });
             } catch (relationshipError) {
               console.error("Unable to persist relationship continuity.", relationshipError);
+            }
+            if (parsed.data.message.trim().length >= 100 || extractMemoryCandidates(parsed.data.message).length > 0) {
+              const { error: journalError } = await supabase.from("journal_entries").insert({
+                user_id: userId,
+                summary: `Conversation milestone: ${parsed.data.message.trim().slice(0, 240)}`
+              });
+              if (journalError) console.error("Unable to persist journal summary.", journalError);
             }
           }
           controller.close();
